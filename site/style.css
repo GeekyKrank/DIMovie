@@ -2,4 +2,4 @@
 
 button,input,select,textarea,kbd{font-family:inherit}
 
-.header{gap:28px}.header .brand,.header nav,.header .player-link{flex-shrink:0}.header .search{flex:1;min-width:0;max-width:640px;margin-left:auto;padding:9px 14px}.header .player-link{margin-left:0}main{padding-top:32px}.toolbar{margin:0 0 28px}.categories{margin-top:0}@media(max-width:650px){.header{height:auto;min-height:72px;padding-top:14px;padding-bottom:14px;gap:12px 18px}.header nav{margin-left:auto}.header .player-link{order:2}.header .search{order:3;flex-basis:100%;max-width:none;margin-left:0}.section-head h1{font-size:19px}}
+.header{gap:28px}.header .brand,.header nav,.header .player-link{flex-shrink:0}.header .search{flex:1;min-width:0;max-width:640px;margin-left:auto;padding:9px 14px}.header .player-link{margin-left:0}main{padding-top:32px}.toolbar{margin:0 0 28px}.categories{margin-top:0}@media(max-width:900px){.header{height:auto;min-height:72px;padding-top:14px;padding-bottom:14px;gap:12px 18px}.header nav{margin-left:auto}.header .player-link{order:2}.header .search{order:3;flex-basis:100%;max-width:none;margin-left:0}.section-head h1{font-size:19px}}
