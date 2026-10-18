@@ -1,5 +1,5 @@
 import { api, posterUrl } from './api.js';
-import { PLAYER_URL } from './config.js';
+import { openPlayer } from './player.js';
 const $ = id => document.getElementById(id);
 const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false };
 let controller, detailController, searchTimer;
@@ -89,9 +89,9 @@ async function openMovie(movie) {
       try { localStorage.setItem('dimovie-favorites', JSON.stringify(next)); favorites = next; updateFavorite(); if (state.library) load(); }
       catch { note.textContent = 'Браузер не разрешил сохранить избранное. Проверь доступ к хранилищу.'; }
     });
-    const player = el('a', 'secondary', 'Открыть торрент-плеер ↗'); player.href = PLAYER_URL; player.target = '_blank'; player.rel = 'noopener noreferrer';
+    const player = el('button', 'secondary', '▶ Открыть плеер'); player.addEventListener('click', () => { movie-dialog.close(); openPlayer(details.title); });
     actions.append(favorite, player);
-    const note = el('p', 'note', 'Плеер открывается отдельно и требует логин и пароль владельца. Для просмотра добавь разрешённую magnet-ссылку или torrent-файл. Автоматический поиск источников пока не подключён.');
+    const note = el('p', 'note', 'Плеер встроен в DIMovie. Подключись по паролю владельца и добавь разрешённую magnet-ссылку или ссылку на torrent-файл. Автоматический поиск источников пока не подключён.');
     body.append(title, meta, genres, el('p', 'overview', details.overview || 'Описание пока не добавлено.'), actions, note);
     content.replaceChildren(image(details.backdrop_path, 'w780', 'backdrop'), body);
   } catch (error) { if (!signal.aborted) content.replaceChildren(el('p', 'detail-body', error.message)); }

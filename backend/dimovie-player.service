@@ -1,0 +1,27 @@
+[Unit]
+Description=DIMovie private player bridge
+After=network-online.target moviesplayer-torrserver.service
+Wants=network-online.target
+
+[Service]
+DynamicUser=yes
+WorkingDirectory=/opt/dimovie-player
+ExecStart=/usr/bin/python3 -I /opt/dimovie-player/player_bridge.py
+LoadCredential=player-password:/etc/moviesplayer/torrent-password
+Environment=PLAYER_PASSWORD_FILE=%d/player-password
+Restart=on-failure
+RestartSec=5
+MemoryMax=64M
+TasksMax=24
+CPUQuota=30%
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

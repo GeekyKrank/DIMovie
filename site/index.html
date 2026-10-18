@@ -9,15 +9,15 @@
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://image.tmdb.org">
   <link rel="stylesheet" href="assets/fonts/montserrat.css">
-  <link rel="stylesheet" href="style.css?v=header-search-3">
-  <script type="module" src="app.js"></script>
+  <link rel="stylesheet" href="style.css?v=embedded-player-1">
+  <script type="module" src="app.js?v=embedded-player-1"></script>
 </head>
 <body>
   <header class="header">
-    <a class="brand" href="./" aria-label="DIMovie — главная"><img src="assets/logo.png" width="46" height="46" alt=""><span>DI<span class="accent">Movie</span></span></a>
-    <nav aria-label="Разделы"><button id="catalog-tab" class="nav active" aria-pressed="true">Каталог</button><button id="library-tab" class="nav" aria-pressed="false">Избранное</button></nav>
+    <div class="header-left"><a class="brand" href="./" aria-label="DIMovie — главная"><img src="assets/logo.png" width="46" height="46" alt=""><span>DI<span class="accent">Movie</span></span></a>
+    <nav aria-label="Разделы"><button id="catalog-tab" class="nav active" aria-pressed="true">Каталог</button><button id="library-tab" class="nav" aria-pressed="false">Избранное</button></nav></div>
     <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Название фильма…" aria-label="Поиск фильмов" maxlength="180" autocomplete="off"><kbd aria-hidden="true">/</kbd></label>
-    <a id="player-link" class="player-link" target="_blank" rel="noopener noreferrer">Плеер <span aria-hidden="true">↗</span></a>
+    <button id="player-link" class="player-link" type="button">Плеер</button>
   </header>
   <main>
     <section class="toolbar" aria-label="Категории фильмов">
@@ -29,8 +29,21 @@
     <div class="pagination" id="pagination"><button id="previous" class="secondary" disabled>Назад</button><button id="next" class="primary" disabled>Дальше <span aria-hidden="true">→</span></button></div>
     <button id="retry" class="primary" hidden>Повторить загрузку</button>
   </main>
-  <footer><a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">Данные и изображения TMDB</a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p><p>Каталог не гарантирует доступность видео. Приватный торрент-плеер требует входа. Используйте источники, на просмотр которых у вас есть разрешение.</p><a href="https://github.com/GeekyKrank/DIMovie" target="_blank" rel="noopener noreferrer">DIMovie на GitHub ↗</a></footer>
+  <footer><a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">Данные и изображения TMDB</a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p><p>Каталог не гарантирует доступность видео. Встроенный плеер подключается к личному серверу по паролю. Используйте источники, на просмотр которых у вас есть разрешение.</p><a href="https://github.com/GeekyKrank/DIMovie" target="_blank" rel="noopener noreferrer">DIMovie на GitHub ↗</a></footer>
   <dialog id="movie-dialog" aria-labelledby="movie-title"><button id="close-dialog" class="close" aria-label="Закрыть">×</button><div id="movie-content"></div></dialog>
+  <dialog id="player-dialog" class="player-dialog" aria-labelledby="player-heading">
+    <button id="close-player" class="close" aria-label="Закрыть плеер">×</button>
+    <div class="player-body"><h2 id="player-heading">Встроенный плеер</h2>
+      <form id="server-login" class="player-form"><label for="server-password">Пароль личного сервера</label><input id="server-password" type="password" autocomplete="current-password" required placeholder="Пароль из файла доступа"><button id="connect-server" class="primary">Подключиться</button><p class="note">Пароль не публикуется в GitHub и не сохраняется сайтом. Используй пароль владельца сервера.</p></form>
+      <div id="torrent-controls" hidden>
+        <form id="torrent-form" class="player-form"><label for="torrent-link">Magnet-ссылка или HTTPS-ссылка на torrent-файл</label><input id="torrent-link" type="text" maxlength="4096" required placeholder="magnet:?xt=urn:btih:…" spellcheck="false"><button id="load-torrent" class="primary">Загрузить раздачу</button></form>
+        <div id="file-picker" class="player-form" hidden><label for="video-file">Видеофайл</label><select id="video-file"></select><div class="actions"><button id="start-video" class="primary">▶ Смотреть</button><button id="stop-torrent" class="secondary">Остановить</button></div></div>
+        <p class="note">Один фильм одновременно. Добавь свою разрешённую раздачу: автоматический поиск источников по фильму пока не подключён.</p>
+      </div>
+      <p id="player-status" class="player-status" role="status" aria-live="polite"></p><p id="torrent-stats" class="note"></p>
+      <div id="video-shell" hidden><video id="embedded-video" controls playsinline preload="metadata" referrerpolicy="no-referrer"></video><div class="video-tools"><button id="rewind-video" class="secondary">↶ 10 с</button><button id="forward-video" class="secondary">10 с ↷</button><label class="volume">Громкость<input id="video-volume" aria-label="Громкость видео" type="range" min="0" max="1" step="0.01" value="1"></label></div></div>
+    </div>
+  </dialog>
   <noscript>Для поиска и загрузки каталога включите JavaScript.</noscript>
 </body>
 </html>
