@@ -34,12 +34,12 @@
       <button id="back-catalog" class="back-catalog">← К каталогу</button>
       <article id="movie-content"></article>
       <section id="inline-player" class="inline-player" aria-labelledby="player-heading">
-        <div class="watch-bar"><h2 id="player-heading">Смотреть онлайн</h2><button id="toggle-source" class="source-button" aria-controls="player-setup" aria-expanded="false">Настроить источник</button></div>
+        <div class="watch-bar"><h2 id="player-heading">Смотреть онлайн</h2><button id="toggle-source" class="source-button" aria-controls="source-panel">Выбрать источник</button></div>
         <div id="video-shell" class="video-shell"><video id="embedded-video" controls playsinline preload="metadata" referrerpolicy="no-referrer"></video><button id="center-play" class="center-play" aria-label="Запустить видео"><span aria-hidden="true">▶</span></button><p id="video-hint" class="video-hint">Выбери источник ниже, чтобы начать просмотр</p></div>
         <div class="video-tools"><button id="rewind-video" class="secondary" aria-label="Назад на 10 секунд">↶ 10 с</button><button id="forward-video" class="secondary" aria-label="Вперёд на 10 секунд">10 с ↷</button><button id="stop-torrent" class="secondary">Остановить</button><label class="volume">Громкость<input id="video-volume" aria-label="Громкость видео" type="range" min="0" max="1" step="0.01" value="1"></label></div>
         <p id="player-status" class="player-status" role="status" aria-live="polite"></p><p id="torrent-stats" class="note"></p>
         <section id="source-panel" class="source-panel" aria-labelledby="sources-heading"><div class="sources-head"><h3 id="sources-heading">Доступные источники</h3><button id="refresh-sources" class="secondary">Повторить поиск</button></div><p id="sources-status" class="note" role="status" aria-live="polite"></p><div id="source-list" class="source-list"></div></section>
-        <details id="player-setup" class="player-setup"><summary>Источник видео</summary><div class="player-body">
+        <details id="player-setup" class="player-setup"><summary>Своя ссылка (дополнительно)</summary><div class="player-body">
       <div id="torrent-controls">
         <form id="torrent-form" class="player-form"><label for="torrent-link">Magnet-ссылка</label><input id="torrent-link" type="text" maxlength="4096" required placeholder="magnet:?xt=urn:btih:…" spellcheck="false"><button id="load-torrent" class="primary">Загрузить раздачу</button></form>
         <div id="file-picker" class="player-form" hidden><label for="video-file">Видеофайл</label><select id="video-file"></select><div class="actions"><button id="start-video" class="primary">▶ Смотреть</button></div></div>

@@ -148,7 +148,6 @@ $('center-play').addEventListener('click', () => {
   else { $('sources-status').textContent = 'Открой фильм в каталоге — сайт найдёт доступные источники.'; $('source-panel').scrollIntoView({ block: 'start' }); }
 });
 $('toggle-source').addEventListener('click', () => $('source-panel').scrollIntoView({ block: 'start' }));
-$('player-setup').addEventListener('toggle', () => $('toggle-source').setAttribute('aria-expanded', String($('player-setup').open)));
 window.addEventListener('pagehide', () => {
   if (active && token) fetch(BASE + '/stop', { method: 'POST', keepalive: true, credentials: 'omit', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: '{}' }).catch(() => {});
 });
