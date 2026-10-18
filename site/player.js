@@ -127,7 +127,8 @@ async function startVideo() {
     video.src = BASE + result.path; video.load();
     $('video-hint').hidden = true; $('player-setup').open = false;
     $('video-shell').scrollIntoView({ block: 'center' });
-    await video.play().catch(() => message('Нажми ▶ на видео, чтобы начать просмотр.'));
+    const requestedSource = video.src;
+    video.play().catch(() => { if (video.src === requestedSource) message('Нажми ▶ на видео, чтобы начать просмотр.'); });
   } catch (error) { message(error.message); }
   finally { $('start-video').disabled = false; }
 }
