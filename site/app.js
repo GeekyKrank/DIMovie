@@ -89,14 +89,14 @@ async function openMovie(movie) {
       try { localStorage.setItem('dimovie-favorites', JSON.stringify(next)); favorites = next; updateFavorite(); if (state.library) load(); }
       catch { note.textContent = 'Браузер не разрешил сохранить избранное. Проверь доступ к хранилищу.'; }
     });
-    const player = el('button', 'secondary', '▶ Открыть плеер'); player.addEventListener('click', () => { movie-dialog.close(); openPlayer(details.title); });
+    const player = el('button', 'secondary', '▶ Открыть плеер'); player.addEventListener('click', () => { $('movie-dialog').close(); openPlayer(details.title); });
     actions.append(favorite, player);
     const note = el('p', 'note', 'Плеер встроен в DIMovie. Подключись по паролю владельца и добавь разрешённую magnet-ссылку или ссылку на torrent-файл. Автоматический поиск источников пока не подключён.');
     body.append(title, meta, genres, el('p', 'overview', details.overview || 'Описание пока не добавлено.'), actions, note);
     content.replaceChildren(image(details.backdrop_path, 'w780', 'backdrop'), body);
   } catch (error) { if (!signal.aborted) content.replaceChildren(el('p', 'detail-body', error.message)); }
 }
-$('player-link').href = PLAYER_URL;
+$('player-link').addEventListener('click', () => openPlayer());
 $('search').addEventListener('input', () => {
   clearTimeout(searchTimer); controller?.abort();
   searchTimer = setTimeout(() => { state.query = $('search').value.trim(); state.page = 1; load(); }, 350);
@@ -111,5 +111,5 @@ $('retry').addEventListener('click', load);
 $('close-dialog').addEventListener('click', () => $('movie-dialog').close());
 $('movie-dialog').addEventListener('close', () => detailController?.abort());
 $('movie-dialog').addEventListener('click', event => { if (event.target === $('movie-dialog')) { const r = event.target.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) event.target.close(); } });
-document.addEventListener('keydown', event => { if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && !$('movie-dialog').open) { event.preventDefault(); $('search').focus(); } });
+document.addEventListener('keydown', event => { if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && !$('movie-dialog').open && !$('player-dialog').open) { event.preventDefault(); $('search').focus(); } });
 load();
