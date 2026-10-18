@@ -1,8 +1,8 @@
 import { api, posterUrl } from './api.js';
-import { openPlayer } from './player.js';
+import { openPlayer, stopPlayer } from './player.js?v=inline-player-1';
 const $ = id => document.getElementById(id);
 const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false };
-let controller, detailController, searchTimer;
+let controller, detailController, searchTimer, selectedMovie = null, catalogueScroll = 0;
 let favorites = readFavorites();
 function readFavorites() {
   try {
@@ -68,14 +68,18 @@ async function load() {
   } finally { if (!signal.aborted) $('grid').removeAttribute('aria-busy'); }
 }
 async function openMovie(movie) {
+  if (selectedMovie?.id !== movie.id) await stopPlayer();
+  catalogueScroll = window.scrollY;
+  selectedMovie = movie;
+  $('catalog-page').hidden = true; $('watch-page').hidden = false;
+  window.scrollTo({ top: 0, behavior: 'instant' });
   detailController?.abort(); detailController = new AbortController();
   const signal = detailController.signal;
   const content = $('movie-content'); content.replaceChildren(el('p', 'detail-body', 'Загружаем фильм…'));
-  if (!$('movie-dialog').open) $('movie-dialog').showModal();
   try {
     const details = await api(`movie/${movie.id}`, { append_to_response: 'external_ids' }, signal);
     if (signal.aborted) return;
-    const body = el('div', 'detail-body'); const title = el('h2', '', details.title); title.id = 'movie-title';
+    const body = el('div', 'detail-body'); const title = el('h1', '', details.title); title.id = 'movie-title';
     const meta = el('div', 'metadata');
     [details.vote_average > 0 ? `★ ${details.vote_average.toFixed(1)}` : '', (details.release_date || '').slice(0, 4), details.runtime ? `${details.runtime} мин` : '', 'Фильм'].filter(Boolean).forEach(text => meta.append(el('span', '', text)));
     const genres = el('div', 'genres', (details.genres || []).map(g => g.name).join(' · '));
@@ -89,27 +93,43 @@ async function openMovie(movie) {
       try { localStorage.setItem('dimovie-favorites', JSON.stringify(next)); favorites = next; updateFavorite(); if (state.library) load(); }
       catch { note.textContent = 'Браузер не разрешил сохранить избранное. Проверь доступ к хранилищу.'; }
     });
-    const player = el('button', 'secondary', '▶ Открыть плеер'); player.addEventListener('click', () => { $('movie-dialog').close(); openPlayer(details.title); });
+    const player = el('button', 'secondary', '▶ Смотреть онлайн'); player.addEventListener('click', () => $('inline-player').scrollIntoView({ block: 'start' }));
     actions.append(favorite, player);
-    const note = el('p', 'note', 'Плеер встроен в DIMovie. Подключись по паролю владельца и добавь разрешённую magnet-ссылку или ссылку на torrent-файл. Автоматический поиск источников пока не подключён.');
+    const note = el('p', 'note');
     body.append(title, meta, genres, el('p', 'overview', details.overview || 'Описание пока не добавлено.'), actions, note);
-    content.replaceChildren(image(details.backdrop_path, 'w780', 'backdrop'), body);
+    content.replaceChildren(image(details.poster_path, 'w342', 'movie-poster'), body);
+    openPlayer(details.title, posterUrl(details.backdrop_path, 'w1280'));
+    document.title = `${details.title} — DIMovie`;
   } catch (error) { if (!signal.aborted) content.replaceChildren(el('p', 'detail-body', error.message)); }
 }
-$('player-link').addEventListener('click', () => openPlayer());
+async function showCatalogue() {
+  detailController?.abort();
+  $('watch-page').hidden = true; $('catalog-page').hidden = false;
+  document.title = 'DIMovie — фильмы';
+  window.scrollTo({ top: catalogueScroll, behavior: 'instant' });
+  await stopPlayer();
+}
+$('back-catalog').addEventListener('click', showCatalogue);
+$('player-link').addEventListener('click', () => {
+  if ($('watch-page').hidden) {
+    catalogueScroll = window.scrollY;
+    $('catalog-page').hidden = true; $('watch-page').hidden = false;
+    $('movie-content').replaceChildren(el('h1', 'standalone-heading', 'Видеоплеер'));
+    openPlayer();
+  }
+  $('inline-player').scrollIntoView({ block: 'start' });
+});
 $('search').addEventListener('input', () => {
   clearTimeout(searchTimer); controller?.abort();
   searchTimer = setTimeout(() => { state.query = $('search').value.trim(); state.page = 1; load(); }, 350);
+  if (!$('watch-page').hidden) showCatalogue();
 });
 document.querySelectorAll('.chip').forEach(button => button.addEventListener('click', () => {
   clearTimeout(searchTimer); state.category = button.dataset.category; state.page = 1; state.query = ''; $('search').value = '';
   document.querySelectorAll('.chip').forEach(b => { b.classList.toggle('selected', b === button); b.setAttribute('aria-pressed', String(b === button)); }); load();
 }));
-for (const [id, library] of [['catalog-tab', false], ['library-tab', true]]) $(id).addEventListener('click', () => { clearTimeout(searchTimer); state.library = library; state.page = 1; state.query = ''; $('search').value = ''; load(); });
+for (const [id, library] of [['catalog-tab', false], ['library-tab', true]]) $(id).addEventListener('click', () => { clearTimeout(searchTimer); showCatalogue(); state.library = library; state.page = 1; state.query = ''; $('search').value = ''; load(); });
 for (const [id, delta] of [['previous', -1], ['next', 1]]) $(id).addEventListener('click', () => { state.page += delta; load(); window.scrollTo({ top: 0, behavior: 'instant' }); });
 $('retry').addEventListener('click', load);
-$('close-dialog').addEventListener('click', () => $('movie-dialog').close());
-$('movie-dialog').addEventListener('close', () => detailController?.abort());
-$('movie-dialog').addEventListener('click', event => { if (event.target === $('movie-dialog')) { const r = event.target.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) event.target.close(); } });
-document.addEventListener('keydown', event => { if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && !$('movie-dialog').open && !$('player-dialog').open) { event.preventDefault(); $('search').focus(); } });
+document.addEventListener('keydown', event => { if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) { event.preventDefault(); $('search').focus(); } });
 load();

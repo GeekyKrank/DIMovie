@@ -1,9 +1,6 @@
-"""Authenticated, bounded TorrServer bridge for the DIMovie static frontend."""
+"""Bounded guest-session TorrServer bridge for the DIMovie static frontend."""
 import collections
-import hmac
 import json
-import os
-from pathlib import Path
 import re
 import secrets
 import threading
@@ -14,9 +11,9 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ORIGIN = 'https://geekykrank.github.io'
-PASSWORD = Path(os.environ['PLAYER_PASSWORD_FILE']).read_text().strip()
 SESSIONS, STREAMS = {}, {}
-ATTEMPTS = collections.deque(maxlen=64)
+ATTEMPTS = collections.deque(maxlen=128)
+IP_ATTEMPTS = {}
 LOCK = threading.Lock()
 GATE = threading.BoundedSemaphore(12)
 MEDIA_GATE = threading.BoundedSemaphore(3)
@@ -35,8 +32,9 @@ def valid_link(link):
     if parsed.scheme == 'magnet':
         xt = urllib.parse.parse_qs(parsed.query).get('xt', [''])[0]
         return re.fullmatch(r'urn:btih:(?:[a-fA-F0-9]{40}|[A-Z2-7a-z]{32})', xt) is not None
-    # Metadata files only; no credentials, local IPs, ports or arbitrary proxying.
-    return parsed.scheme == 'https' and parsed.port in (None, 443) and not parsed.username and not parsed.password and bool(parsed.hostname) and not re.fullmatch(r'[\d.:]+', parsed.hostname) and parsed.hostname != 'localhost' and parsed.path.lower().endswith('.torrent')
+    # Anonymous clients must not turn the engine into an arbitrary URL fetcher.
+    # This one openly licensed demo is permitted for end-to-end smoke tests.
+    return link == 'https://webtorrent.io/torrents/big-buck-bunny.torrent'
 
 
 class Server(ThreadingHTTPServer):
@@ -110,16 +108,24 @@ class Handler(BaseHTTPRequestHandler):
                 with LOCK:
                     while ATTEMPTS and ATTEMPTS[0] < now - 60:
                         ATTEMPTS.popleft()
-                    if len(ATTEMPTS) >= 8:
+                    if len(ATTEMPTS) >= 60:
                         return self.reply(429, {'error': 'Подожди минуту перед следующей попыткой входа'})
+                    client_ip = self.headers.get('X-Real-IP', self.client_address[0])
+                    for key in list(IP_ATTEMPTS):
+                        if IP_ATTEMPTS[key][-1] < now - 60:
+                            del IP_ATTEMPTS[key]
+                    recent = IP_ATTEMPTS.setdefault(client_ip, collections.deque(maxlen=4))
+                    while recent and recent[0] < now - 60:
+                        recent.popleft()
+                    if len(recent) >= 4:
+                        return self.reply(429, {'error': 'Слишком частые подключения. Подожди минуту.'})
+                    recent.append(now)
                     ATTEMPTS.append(now)
-                    if not hmac.compare_digest(str(data.get('password', '')).encode(), PASSWORD.encode()):
-                        return self.reply(401, {'error': 'Неверный пароль сервера'})
                     for token in list(SESSIONS):
                         if SESSIONS[token]['expires'] < now:
                             del SESSIONS[token]
-                    if len(SESSIONS) >= 4:
-                        return self.reply(429, {'error': 'Слишком много активных сеансов'})
+                    if len(SESSIONS) >= 64:
+                        return self.reply(429, {'error': 'Сервер занят. Попробуй немного позже.'})
                     token = secrets.token_urlsafe(32)
                     SESSIONS[token] = {'expires': now + 6 * 3600, 'seen': now, 'hash': None}
                 return self.reply(200, {'token': token})
@@ -128,14 +134,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(401, {'error': 'Подключись к серверу заново'})
             if self.path == '/torrent':
                 if not valid_link(data.get('link')):
-                    return self.reply(400, {'error': 'Нужна magnet-ссылка или HTTPS-ссылка на .torrent'})
+                    return self.reply(400, {'error': 'Нужна корректная magnet-ссылка'})
                 # Micro serves one active torrent across all client sessions.
                 with LOCK:
                     if any(s['hash'] for s in SESSIONS.values()):
-                        return self.reply(409, {'error': 'На сервере уже открыт фильм. Сначала останови его.'})
+                        return self.reply(409, {'error': 'Сервер занят другим зрителем. Попробуй позже.'})
                     session['hash'] = 'pending'
                 try:
-                    result = upstream({'action': 'add', 'link': data['link'], 'save_to_db': False})
+                    link = data['link']
+                    if link.startswith('magnet:'):
+                        xt = urllib.parse.parse_qs(urllib.parse.urlsplit(link).query)['xt'][0]
+                        link = 'magnet:?' + urllib.parse.urlencode({'xt': xt})
+                    result = upstream({'action': 'add', 'link': link, 'save_to_db': False})
                     session['hash'] = result['hash']
                 except Exception:
                     session['hash'] = None
@@ -144,6 +154,8 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == '/status':
                 return self.reply(200, self.describe(session))
             if self.path == '/play':
+                if not session['hash'] or session['hash'] == 'pending':
+                    return self.reply(409, {'error': 'Сначала загрузи раздачу в своём сеансе'})
                 result = upstream({'action': 'get', 'hash': session['hash']})
                 files = result.get('file_stats') or []
                 index = int(data.get('index', 0))

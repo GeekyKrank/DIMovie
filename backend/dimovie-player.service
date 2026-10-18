@@ -7,8 +7,6 @@ Wants=network-online.target
 DynamicUser=yes
 WorkingDirectory=/opt/dimovie-player
 ExecStart=/usr/bin/python3 -I /opt/dimovie-player/player_bridge.py
-LoadCredential=player-password:/etc/moviesplayer/torrent-password
-Environment=PLAYER_PASSWORD_FILE=%d/player-password
 Restart=on-failure
 RestartSec=5
 MemoryMax=64M
