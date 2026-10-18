@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="DIMovie — каталог фильмов, поиск и личная библиотека.">
+  <title>DIMovie — фильмы</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="preconnect" href="https://image.tmdb.org">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="header">
+    <a class="brand" href="./" aria-label="DIMovie — главная"><img src="assets/logo.png" width="46" height="46" alt=""><span>DI<span class="accent">Movie</span></span></a>
+    <nav aria-label="Разделы"><button id="catalog-tab" class="nav active" aria-pressed="true">Каталог</button><button id="library-tab" class="nav" aria-pressed="false">Избранное</button></nav>
+    <a id="player-link" class="player-link" target="_blank" rel="noopener noreferrer">Плеер <span aria-hidden="true">↗</span></a>
+  </header>
+  <main>
+    <section class="intro"><p class="eyebrow">ТВОЁ КИНО. ТВОЙ ВЫБОР.</p><h1 id="page-title">Что посмотрим?</h1><p id="page-description">Находи фильмы и сохраняй то, что хочется посмотреть.</p></section>
+    <section class="toolbar" aria-label="Поиск и категории">
+      <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Название фильма…" aria-label="Поиск фильмов" maxlength="180" autocomplete="off"><kbd aria-hidden="true">/</kbd></label>
+      <div class="categories" id="categories"><button data-category="movie/popular" class="chip selected" aria-pressed="true">Популярное</button><button data-category="trending/movie/week" class="chip" aria-pressed="false">В тренде</button><button data-category="movie/top_rated" class="chip" aria-pressed="false">Лучшие</button><button data-category="movie/now_playing" class="chip" aria-pressed="false">Сейчас в кино</button></div>
+    </section>
+    <div class="section-head"><h2 id="section-title">Популярное</h2><span id="page-number"></span></div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <div id="grid" class="grid" aria-label="Фильмы"></div>
+    <div class="pagination" id="pagination"><button id="previous" class="secondary" disabled>Назад</button><button id="next" class="primary" disabled>Дальше <span aria-hidden="true">→</span></button></div>
+    <button id="retry" class="primary" hidden>Повторить загрузку</button>
+  </main>
+  <footer><a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">Данные и изображения TMDB</a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p><p>Каталог не гарантирует доступность видео. Приватный торрент-плеер требует входа. Используйте источники, на просмотр которых у вас есть разрешение.</p><a href="https://github.com/GeekyKrank/DIMovie" target="_blank" rel="noopener noreferrer">DIMovie на GitHub ↗</a></footer>
+  <dialog id="movie-dialog" aria-labelledby="movie-title"><button id="close-dialog" class="close" aria-label="Закрыть">×</button><div id="movie-content"></div></dialog>
+  <noscript>Для поиска и загрузки каталога включите JavaScript.</noscript>
+</body>
+</html>
