@@ -24,19 +24,31 @@ export function parseStreams(payload) {
   }
   return result.sort((a, b) => Number(b.russian) - Number(a.russian) || (b.seeders || 0) - (a.seeders || 0)).slice(0, 60);
 }
-export async function searchSources(imdb, signal) {
-  if (!/^tt\d{5,12}$/.test(imdb)) throw new Error('У фильма нет корректного IMDb ID.');
-  const saved = cache.get(imdb);
-  if (saved?.expires > Date.now()) return saved.data;
-  const timeout = AbortSignal.timeout(25_000);
-  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
-  let response;
-  try { response = await fetch(`https://torrentio.strem.fun/stream/movie/${imdb}.json`, { signal: combined, credentials: 'omit', redirect: 'error' }); }
-  catch (error) {
-    if (signal?.aborted) throw error;
-    throw new Error('Не удалось связаться с Torrentio с твоего устройства. Проверь интернет или повтори поиск позже.');
+export const SOURCE_PROVIDERS = Object.freeze([
+  { name: 'Torrentio', base: 'https://torrentio.strem.fun' },
+  { name: 'RuTracker / Rutor · Torrentio', base: 'https://torrentio.strem.fun/providers=rutracker,rutor' },
+  { name: 'Nyaa / аниме · Torrentio', base: 'https://torrentio.strem.fun/providers=nyaasi,tokyotosho,anidex' },
+  { name: 'MediaFusion', base: 'https://mediafusion.elfhosted.com' }
+]);
+export function mergeSources(groups) {
+  const seen = new Map();
+  for (const group of groups) for (const stream of group.streams) {
+    const key = `${stream.hash}:${stream.fileIdx}`;
+    const previous = seen.get(key);
+    if (previous) {
+      previous.russian ||= stream.russian; previous.ukrainian ||= stream.ukrainian;
+      previous.size ||= stream.size;
+      if (stream.seeders !== null) previous.seeders = Math.max(previous.seeders || 0, stream.seeders);
+      if (!previous.providers.includes(group.provider)) previous.providers.push(group.provider);
+    } else seen.set(key, { ...stream, providers: [group.provider] });
   }
-  if (!response.ok) throw new Error(response.status === 429 ? 'Дополнение ограничило частоту запросов. Попробуй позже.' : `Torrentio недоступен (HTTP ${response.status}). Повтори поиск позже.`);
+  return [...seen.values()].sort((a, b) => Number(b.russian) - Number(a.russian) || (b.seeders || 0) - (a.seeders || 0)).slice(0, 120);
+}
+async function requestProvider(provider, imdb, signal) {
+  const timeout = AbortSignal.timeout(20_000);
+  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
+  const response = await fetch(`${provider.base}/stream/movie/${imdb}.json`, { signal: combined, credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer' });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const reader = response.body.getReader();
   const chunks = []; let size = 0;
   try {
@@ -51,8 +63,26 @@ export async function searchSources(imdb, signal) {
   for (const chunk of chunks) { buffer.set(chunk, offset); offset += chunk.length; }
   let payload;
   try { payload = JSON.parse(new TextDecoder().decode(buffer)); } catch { throw new Error('Дополнение вернуло некорректный JSON.'); }
-  const data = { streams: parseStreams(payload), provider: 'Torrentio' };
+  const streams = parseStreams(payload);
+  for (const stream of streams) if (stream.name === 'Torrentio' && provider.name === 'MediaFusion') stream.name = 'MediaFusion';
+  return { streams, provider: provider.name };
+}
+export async function searchSources(imdb, signal) {
+  if (!/^tt\d{5,12}$/.test(imdb)) throw new Error('У фильма нет корректного IMDb ID.');
+  signal?.throwIfAborted();
+  const saved = cache.get(imdb);
+  if (saved?.expires > Date.now()) return saved.data;
+  const results = await Promise.allSettled(SOURCE_PROVIDERS.map(provider => requestProvider(provider, imdb, signal)));
+  signal?.throwIfAborted();
+  const groups = [], unavailable = [];
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') groups.push(result.value);
+    else unavailable.push(SOURCE_PROVIDERS[index].name);
+  });
+  if (!groups.length) throw new Error('Источники недоступны с твоего устройства. Проверь подключение или повтори поиск позже.');
+  const data = { streams: mergeSources(groups), provider: groups.map(group => group.provider).join(' · '), unavailable };
+  // A partial failure should recover promptly instead of persisting for five minutes.
   if (cache.size >= 12) cache.delete(cache.keys().next().value);
-  cache.set(imdb, { data, expires: Date.now() + 300_000 });
+  cache.set(imdb, { data, expires: Date.now() + (unavailable.length ? 30_000 : 300_000) });
   return data;
 }

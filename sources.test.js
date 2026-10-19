@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseStreams, searchSources } from './site/sources.js';
+import { parseStreams, searchSources, mergeSources, SOURCE_PROVIDERS } from './site/sources.js';
 test('Stremio hash, zero-based index, Russian hint, size and seeds', () => {
   const [source] = parseStreams({ streams: [{ infoHash: 'A'.repeat(40), fileIdx: 0, name: 'Torrentio 1080p', title: 'Movie 🇷🇺\n👤 125 💾 1.5 GB', behaviorHints: { filename: 'movie.mp4' } }] });
   assert.equal(source.hash, 'a'.repeat(40)); assert.equal(source.fileIdx, 0);
@@ -30,16 +30,41 @@ test('Sources are deduplicated, bounded and Russian hints precede other releases
   assert.equal(parsed.length,60); assert.equal(parsed[0].russian,true);
   assert.equal(new Set(parsed.map(s=>s.hash)).size,60);
 });
-test('Client uses fixed provider, omits credentials and caches fresh results', async () => {
+test('Client uses fixed providers, omits credentials and caches fresh results', async () => {
   const original=globalThis.fetch; let count=0;
   globalThis.fetch=async(url,options)=>{
-    count++; assert.equal(url,'https://torrentio.strem.fun/stream/movie/tt0000002.json');
+    count++; assert.ok(SOURCE_PROVIDERS.some(p => url === p.base + '/stream/movie/tt0000002.json'));
     assert.equal(options.credentials,'omit'); assert.equal(options.redirect,'error');
     return new Response(JSON.stringify({streams:[]}),{status:200});
   };
   try {
     await assert.rejects(searchSources('../bad'),/IMDb/);
     const data=await searchSources('tt0000002');
-    assert.equal(await searchSources('tt0000002'),data); assert.equal(count,1);
+    assert.equal(await searchSources('tt0000002'),data); assert.equal(count,4);
+  } finally {globalThis.fetch=original;}
+});
+
+test('Merging providers deduplicates file hashes and combines language hints', () => {
+  const stream={hash:'a'.repeat(40),fileIdx:0,russian:false,ukrainian:true,seeders:1};
+  const merged=mergeSources([{provider:'one',streams:[stream]},{provider:'two',streams:[{...stream,russian:true,ukrainian:false,seeders:5},{...stream,fileIdx:1}]}]);
+  assert.equal(merged.length,2);assert.equal(merged[0].russian,true);assert.equal(merged[0].ukrainian,true);
+  assert.deepEqual(merged[0].providers,['one','two']);assert.equal(merged[0].seeders,5);
+  assert.equal(stream.russian,false);
+});
+test('Provider failure leaves healthy streams available and reports missing providers', async () => {
+  const original=globalThis.fetch;
+  globalThis.fetch=async url => {
+    if (!url.startsWith('https://mediafusion.elfhosted.com/')) throw new Error('offline');
+    return new Response(JSON.stringify({streams:[{infoHash:'c'.repeat(40),name:'MediaFusion',audioLanguages:['ru']}]}));
+  };
+  try {const data=await searchSources('tt0000003');assert.equal(data.streams.length,1);assert.equal(data.unavailable.length,3);assert.equal(data.streams[0].russian,true);}
+  finally {globalThis.fetch=original;}
+});
+test('All providers unavailable fails clearly and cancelled searches do not return cached data', async () => {
+  const original=globalThis.fetch;globalThis.fetch=async()=>new Response('',{status:503});
+  try {
+    await assert.rejects(searchSources('tt0000004'),/недоступны/);
+    const controller=new AbortController();controller.abort();
+    await assert.rejects(searchSources('tt0000002',controller.signal),{name:'AbortError'});
   } finally {globalThis.fetch=original;}
 });

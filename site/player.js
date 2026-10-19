@@ -1,5 +1,5 @@
 import { configureTransport, seekPlayback, playbackTime, playbackDuration } from './transport.js?v=server-audio-2';
-import { searchSources } from './sources.js?v=source-search-2';
+import { searchSources } from './sources.js?v=multi-source-1';
 import { setControlTitle } from './controls.js?v=server-audio-2';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
@@ -74,6 +74,7 @@ async function findSources() {
     const result = await searchSources(currentImdb, signal);
     if (signal.aborted) return;
     $('sources-status').textContent = result.streams.length ? `${result.provider}: найдено ${result.streams.length}. Синяя метка — русский звук, жёлтая — украинский, по данным источника. Совместимость кодеков проверяется при запуске.` : 'Дополнение не нашло раздачи для этого фильма. Попробуй позже или выбери другой фильм.';
+    if (result.unavailable?.length) $('sources-status').textContent += ` Не ответили: ${result.unavailable.join(', ')}.`;
     for (const source of result.streams) {
       const card = document.createElement('article'); card.className = 'source-card';
       const header = document.createElement('div'); header.className = 'source-title';
@@ -81,7 +82,7 @@ async function findSources() {
       if (source.russian) { const badge = document.createElement('span'); badge.className = 'russian-badge'; badge.textContent = 'Русский'; header.append(badge); }
       if (source.ukrainian) { const badge = document.createElement('span'); badge.className = 'ukrainian-badge'; badge.textContent = 'Українська'; header.append(badge); }
       const description = document.createElement('p'); description.className = 'source-description'; description.textContent = source.title;
-      const meta = document.createElement('p'); meta.className = 'source-meta'; meta.textContent = [source.quality, source.size ? bytes(source.size) : '', source.seeders !== null ? `Раздающих: ${source.seeders}` : 'Число раздающих не указано'].filter(Boolean).join(' · ');
+      const meta = document.createElement('p'); meta.className = 'source-meta'; meta.textContent = [source.providers?.join(' · '), source.quality, source.size ? bytes(source.size) : '', source.seeders !== null ? `Раздающих: ${source.seeders}` : 'Число раздающих не указано'].filter(Boolean).join(' · ');
       const play = document.createElement('button'); play.className = 'primary'; play.textContent = '▶ Смотреть'; play.setAttribute('aria-label', `Смотреть: ${source.name} ${source.seeders || 0} раздающих`);
       play.addEventListener('click', () => loadTorrent('magnet:?xt=urn:btih:' + source.hash, source, true));
       card.append(header, description, meta);
