@@ -1,5 +1,5 @@
 import { api, posterUrl } from './api.js';
-import { openPlayer, stopPlayer } from './player.js?v=clean-header-1';
+import { openPlayer, stopPlayer } from './player.js?v=wide-catalog-1';
 const $ = id => document.getElementById(id);
 const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false };
 let controller, detailController, searchTimer, selectedMovie = null, catalogueScroll = 0;
@@ -114,7 +114,7 @@ $('search').addEventListener('input', () => {
   if (!$('watch-page').hidden) showCatalogue();
 });
 document.querySelectorAll('.chip').forEach(button => button.addEventListener('click', () => {
-  clearTimeout(searchTimer); state.category = button.dataset.category; state.page = 1; state.query = ''; $('search').value = '';
+  clearTimeout(searchTimer); if (!$('watch-page').hidden) showCatalogue(); state.category = button.dataset.category; state.page = 1; state.query = ''; $('search').value = '';
   document.querySelectorAll('.chip').forEach(b => { b.classList.toggle('selected', b === button); b.setAttribute('aria-pressed', String(b === button)); }); load();
 }));
 for (const [id, library] of [['catalog-tab', false], ['library-tab', true]]) $(id).addEventListener('click', () => { clearTimeout(searchTimer); showCatalogue(); state.library = library; state.page = 1; state.query = ''; $('search').value = ''; load(); });
