@@ -1,6 +1,6 @@
-import { configureTransport, seekPlayback, playbackTime, playbackDuration } from './transport.js?v=server-audio-2';
+import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback } from './transport.js?v=compatibility-1';
 import { searchSources, sortSources } from './sources.js?v=source-sort-1';
-import { setControlTitle } from './controls.js?v=server-audio-2';
+import { setControlTitle } from './controls.js?v=compatibility-1';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let token = '', active = false, pollTimer, operation;
@@ -153,7 +153,7 @@ async function startVideo() {
     $('video-hint').hidden = true; $('player-setup').open = false;
     $('video-shell').scrollIntoView({ block: 'center' });
     const requestedSource = video.src;
-    video.play().catch(() => { if (video.src === requestedSource) message('Нажми ▶ на видео, чтобы начать просмотр.'); });
+    video.play().catch(error => { if (video.src === requestedSource && error.name === 'NotAllowedError') message('Нажми ▶ на видео, чтобы начать просмотр.'); });
   } catch (error) { message(error.message); }
   finally { $('start-video').disabled = false; }
 }
@@ -161,7 +161,20 @@ $('start-video').addEventListener('click', startVideo);
 video.addEventListener('playing', () => { $('center-play').hidden = true; message('Воспроизведение'); });
 video.addEventListener('pause', () => { $('center-play').hidden = false; });
 video.addEventListener('waiting', () => message('Накапливаем буфер. Скорость зависит от доступных пиров.'));
-video.addEventListener('error', () => message('Не удалось воспроизвести видео. Браузер может не поддерживать кодек этой раздачи. Попробуй MP4 с H.264/AAC.'));
+video.addEventListener('error', async () => {
+  const failedSource = video.getAttribute('src');
+  const code = video.error?.code;
+  if (!failedSource) return;
+  message('Проверяем совместимость файла и готовим MP4 со звуком AAC…');
+  try {
+    const recovered = await recoverCompatiblePlayback(code);
+    if (!recovered && failedSource === video.getAttribute('src')) message(code === 2
+      ? 'Ошибка передачи видео. Проверь скорость раздачи или выбери другой источник.'
+      : 'Видеокодек не поддерживается браузером. Переупаковка не исправляет Xvid/DivX и другие несовместимые кодеки. Выбери H.264/AAC.');
+  } catch (error) {
+    if (failedSource === video.getAttribute('src') || video.error) message('Не удалось подготовить совместимое видео. ' + error.message + ' Попробуй источник H.264/AAC.');
+  }
+});
 $('rewind-video').addEventListener('click', () => { seekPlayback(playbackTime() - 10); });
 $('forward-video').addEventListener('click', () => { if (Number.isFinite(playbackDuration())) seekPlayback(Math.min(playbackDuration(), playbackTime() + 10)); });
 $('video-volume').addEventListener('input', event => { video.volume = Number(event.target.value); video.muted = video.volume === 0; });

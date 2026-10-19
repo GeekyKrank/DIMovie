@@ -1,8 +1,8 @@
 const video = document.getElementById('embedded-video');
-let source = '', loader, info, offset = 0, selected = null, pending;
+let source = '', loader, info, offset = 0, selected = null, pending, compatibilityAttempted = false;
 export function configureTransport(url = '', loadInfo) {
   pending?.abort(); pending = null;
-  source = url; loader = loadInfo; info = null; offset = 0; selected = null;
+  source = url; loader = loadInfo; info = null; offset = 0; selected = null; compatibilityAttempted = false;
 }
 export function playbackDuration() { return selected !== null ? info?.duration || 0 : video.duration; }
 export function playbackTime() { return offset + video.currentTime; }
@@ -35,4 +35,20 @@ export function selectServerAudio(index) {
 export function seekPlayback(time) {
   if (selected !== null) reloadAt(time, !video.paused);
   else video.currentTime = Math.max(0, Math.min(time, Number.isFinite(video.duration) ? video.duration : time));
+}
+
+export async function recoverCompatiblePlayback(errorCode) {
+  if (![3,4].includes(errorCode) || !source || selected !== null || compatibilityAttempted) return false;
+  compatibilityAttempted = true;
+  const currentSource = source;
+  const metadata = await serverAudioTracks();
+  if (currentSource !== source) return false;
+  const track = metadata.tracks.find(track => /^(ru|rus)$/i.test(track.language)) || metadata.tracks[0];
+  if (!track) throw new Error('В файле не найдена звуковая дорожка. Попробуй другую раздачу.');
+  selectServerAudio(track.index);
+  await video.play().catch(error => {
+    if (error.name === 'NotAllowedError') document.getElementById('player-status').textContent = 'Нажми ▶ для запуска подготовленного видео.';
+    else throw error;
+  });
+  return true;
 }
