@@ -6,8 +6,8 @@ forwarding; FFmpeg copies video and encodes audio only when requested.
 
 ## Deployed bounds
 
-- `Registry(max_viewers=5, max_torrents=1)`: five viewers of one shared torrent after the authorised bounded check.
-- 64 MiB RAM piece cache in the engine, 448 MiB engine cgroup maximum.
+- `Registry(max_viewers=3, max_torrents=3)`: three viewers total, including different torrents; identical hashes share one cache.
+- 64 MiB RAM piece cache per torrent in the engine, 448 MiB engine cgroup maximum.
 - Idle managed torrents are retained up to 60 seconds for immediate reuse and
   removed by the 30-second sweeper. Actual engine expiry can also discard cache.
 - Idle OTHER torrents may be evicted immediately to admit a different movie.
@@ -105,3 +105,13 @@ two-second samples (35 samples). This is a short app-level check, not a sustaine
 capacity guarantee. Five distinct torrents, higher bitrates, five AAC encoders,
 and long sessions have NOT been validated. Production unique-torrent and
 FFmpeg limits remain one.
+
+## Three different movies enabled (2026-10-19)
+
+The user selected three viewers of possibly different movies after the bounded
+live test. Both viewer and unique-torrent limits are three. Three distinct direct
+streams sustained about 4 Mbit/s each for 30 seconds; four and five did not pass.
+The test used an SSH tunnel, production engine and bridge handlers; it is not a
+long-term playback guarantee or a test of parallel audio encoders. One FFmpeg
+worker remains the limit. Admission guards, shared buffers and active-reader
+protection remain unchanged. The earlier five-viewer result is historical.

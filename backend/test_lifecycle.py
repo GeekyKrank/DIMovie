@@ -115,3 +115,27 @@ class RegistryTest(unittest.TestCase):
         self.registry.reap();self.assertFalse(any(c['action']=='rem' for c in self.calls))
         self.registry.detach('4');self.now+=61;self.registry.reap()
         self.assertEqual(sum(c['action']=='rem' for c in self.calls),1)
+
+    def test_three_distinct_movies_and_fourth_viewer_rejected(self):
+        self.registry.max_viewers=3
+        self.registry.max_torrents=3
+        for token,letter in zip(('one','two','three'),'abc'):
+            self.registry.attach(token,'magnet:?xt=urn:btih:'+letter*40)
+        self.assertEqual(len(self.registry.torrents),3)
+        self.sessions['four']=dict(hash=None,expires=9000,seen=self.now)
+        with self.assertRaises(module.Busy):
+            self.registry.attach('four',self.link)
+        self.registry.detach('two');self.now+=61;self.registry.reap()
+        self.assertEqual(set(self.registry.torrents),{'a'*40,'c'*40})
+        self.registry.attach('four','magnet:?xt=urn:btih:'+'d'*40)
+        self.assertEqual(set(self.registry.torrents),{'a'*40,'c'*40,'d'*40})
+
+    def test_distinct_torrent_limit_cannot_evict_active_viewer(self):
+        self.registry.max_viewers=3
+        self.registry.max_torrents=2
+        self.registry.attach('one',self.link)
+        self.registry.attach('two','magnet:?xt=urn:btih:'+'b'*40)
+        with self.assertRaises(module.Busy):
+            self.registry.attach('three','magnet:?xt=urn:btih:'+'c'*40)
+        self.assertEqual(len(self.registry.torrents),2)
+        self.assertIsNone(self.sessions['three']['hash'])

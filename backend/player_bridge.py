@@ -31,7 +31,7 @@ _monitor = importlib.util.module_from_spec(_spec_monitor)
 _spec_monitor.loader.exec_module(_monitor)
 MONITOR = _monitor.Monitor()
 # Candidate capacity: validated by an explicitly authorised bounded live check.
-REGISTRY = _lifecycle.Registry(SESSIONS, STREAMS, lambda data: upstream(data), max_viewers=5, max_torrents=1)
+REGISTRY = _lifecycle.Registry(SESSIONS, STREAMS, lambda data: upstream(data), max_viewers=3, max_torrents=3)
 LOCK = REGISTRY.lock
 
 
