@@ -1,6 +1,6 @@
-import { configureTransport, seekPlayback, playbackTime, playbackDuration } from './transport.js?v=server-audio-1';
+import { configureTransport, seekPlayback, playbackTime, playbackDuration } from './transport.js?v=server-audio-2';
 import { searchSources } from './sources.js?v=source-search-2';
-import { setControlTitle } from './controls.js?v=server-audio-1';
+import { setControlTitle } from './controls.js?v=server-audio-2';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let token = '', active = false, pollTimer, operation;

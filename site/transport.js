@@ -6,6 +6,13 @@ export function configureTransport(url = '', loadInfo) {
 }
 export function playbackDuration() { return selected !== null ? info?.duration || 0 : video.duration; }
 export function playbackTime() { return offset + video.currentTime; }
+export function selectedServerAudio() { return selected; }
+export function originalAudio() {
+  const time = playbackTime(), resume = !video.paused;
+  selected = null; offset = 0;
+  video.src = source; video.load();
+  video.addEventListener('loadedmetadata', () => { video.currentTime = time; if (resume) video.play().catch(() => {}); }, {once:true});
+}
 export async function serverAudioTracks() {
   if (!source || !loader) throw new Error('Сначала запусти фильм.');
   if (info) return info;

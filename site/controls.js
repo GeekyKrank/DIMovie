@@ -1,4 +1,4 @@
-import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback } from './transport.js?v=server-audio-1';
+import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback, selectedServerAudio, originalAudio } from './transport.js?v=server-audio-2';
 import { audioLabel, selectAudioTrack } from './audio.js?v=audio-menu-1';
 const $ = id => document.getElementById(id);
 const video = $('embedded-video'), shell = $('video-shell');
@@ -104,6 +104,7 @@ $('audio-menu').addEventListener('click', async () => {
         $('audio-track').replaceChildren();
         const original = document.createElement('option'); original.value = ''; original.textContent = 'Исходный звук'; $('audio-track').append(original);
         for (const track of info.tracks) { const option = document.createElement('option'); option.value = String(track.index); option.textContent = audioLabel(track, track.index) + (track.codec ? ' · ' + track.codec.toUpperCase() : ''); $('audio-track').append(option); }
+        $('audio-track').value = selectedServerAudio() === null ? '' : String(selectedServerAudio());
         $('audio-track').hidden = !info.tracks.length; $('audio-track').disabled = !info.tracks.length;
         $('audio-message').textContent = info.tracks.length ? 'Выбери озвучку. Сервер подготовит звук AAC, сохранив видео и позицию просмотра. При перемотке возможна короткая буферизация.' : 'В этом файле не найдены звуковые дорожки.';
       } catch (error) { $('audio-message').textContent = error.message; }
@@ -114,7 +115,7 @@ $('audio-menu').addEventListener('click', async () => {
 $('audio-close').addEventListener('click', closeAudio);
 $('audio-track').addEventListener('change', event => {
   try {
-    if (audioMode === 'server') { if (event.target.value === '') return; selectServerAudio(Number(event.target.value)); }
+    if (audioMode === 'server') { if (event.target.value === '') originalAudio(); else selectServerAudio(Number(event.target.value)); }
     else if (!selectAudioTrack(video.audioTracks, Number(event.target.value))) throw new Error();
     $('audio-message').textContent = 'Выбрано: ' + event.target.selectedOptions[0].textContent;
   } catch { $('audio-message').textContent = 'Браузер не смог переключить эту дорожку. Попробуй другой источник.'; }
