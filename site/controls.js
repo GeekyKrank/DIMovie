@@ -1,3 +1,4 @@
+import { audioLabel, selectAudioTrack } from './audio.js?v=audio-menu-1';
 const $ = id => document.getElementById(id);
 const video = $('embedded-video'), shell = $('video-shell');
 let hideTimer, dragging = false, buffering = false, lastVolume = 1;
@@ -21,7 +22,7 @@ export function formatTime(value) {
 export function setControlTitle(title) { $('control-title').textContent = title; }
 function showControls() {
   clearTimeout(hideTimer); shell.classList.remove('controls-hidden');
-  if (!video.paused && !buffering && !dragging) hideTimer = setTimeout(() => {
+  if (!video.paused && !buffering && !dragging && $('audio-panel').hidden) hideTimer = setTimeout(() => {
     if (shell.contains(document.activeElement) && document.activeElement.matches(':focus-visible')) return;
     shell.classList.add('controls-hidden');
   }, 3000);
@@ -71,6 +72,38 @@ async function fullscreen() {
   showControls();
 }
 $('toggle-play').addEventListener('click', togglePlay);
+function refreshAudio() {
+  const select = $('audio-track');
+  select.replaceChildren();
+  const tracks = video.audioTracks;
+  if (tracks) for (let i = 0; i < tracks.length; i++) {
+    const option = document.createElement('option');
+    option.value = String(i); option.textContent = audioLabel(tracks[i], i);
+    option.selected = tracks[i].enabled; select.append(option);
+  }
+  select.hidden = !tracks?.length;
+  select.disabled = !tracks?.length;
+  $('audio-message').textContent = !video.getAttribute('src') ? 'Сначала запусти фильм.'
+    : !tracks ? 'Этот браузер не предоставляет выбор дорожек этого файла. Выбери другую раздачу с нужной озвучкой. Для переключения внутри файла требуется совместимый браузер или подготовка звука на сервере.'
+    : !tracks.length ? 'Дорожки ещё не определены. Дождись загрузки видео. Если список не появится, браузер не поддерживает выбор звука в этом файле.'
+    : tracks.length === 1 ? 'Браузер обнаружил одну звуковую дорожку.' : 'Выбери язык или название озвучки. Список получен из файла.';
+}
+function closeAudio() { $('audio-panel').hidden = true; $('audio-menu').setAttribute('aria-expanded', 'false'); showControls(); }
+$('audio-menu').addEventListener('click', () => {
+  const opening = $('audio-panel').hidden;
+  $('audio-panel').hidden = !opening; $('audio-menu').setAttribute('aria-expanded', String(opening));
+  if (opening) refreshAudio(); showControls();
+});
+$('audio-close').addEventListener('click', closeAudio);
+$('audio-track').addEventListener('change', event => {
+  try {
+    if (!selectAudioTrack(video.audioTracks, Number(event.target.value))) throw new Error();
+    $('audio-message').textContent = 'Выбрано: ' + event.target.selectedOptions[0].textContent;
+  } catch { $('audio-message').textContent = 'Браузер не смог переключить эту дорожку. Попробуй другой источник.'; }
+  showControls();
+});
+for (const event of ['loadedmetadata', 'loadeddata', 'emptied']) video.addEventListener(event, refreshAudio);
+for (const event of ['addtrack', 'removetrack', 'change']) video.audioTracks?.addEventListener(event, refreshAudio);
 video.addEventListener('click', togglePlay);
 video.addEventListener('dblclick', fullscreen);
 $('fullscreen-video').addEventListener('click', fullscreen);
@@ -96,7 +129,8 @@ $('video-seek').addEventListener('change', event => {
 });
 for (const event of ['pointermove', 'pointerdown', 'focusin']) shell.addEventListener(event, showControls);
 shell.addEventListener('keydown', event => {
-  if (event.target.tagName === 'INPUT' || event.altKey || event.ctrlKey || event.metaKey) return;
+  if (event.key === 'Escape' && !$('audio-panel').hidden) { closeAudio(); $('audio-menu').focus(); event.preventDefault(); return; }
+  if (['INPUT', 'SELECT'].includes(event.target.tagName) || event.altKey || event.ctrlKey || event.metaKey) return;
   if (event.key === ' ' && event.target.tagName === 'BUTTON') return;
   const key = event.key.toLowerCase();
   if (key === ' ' || key === 'k') togglePlay();
