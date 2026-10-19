@@ -104,3 +104,20 @@ export function sortSources(streams, mode, ascending = false, language = 'ru') {
     return (ascending ? av-bv : bv-av) || (b.seeders ?? -1) - (a.seeders ?? -1);
   });
 }
+
+export function matchMovieSources(streams, movie = {}) {
+  const normalize = text => String(text || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const titles = [movie.title, movie.originalTitle].filter(Boolean).map(normalize);
+  const year = String(movie.year || '').slice(0,4);
+  const stop = new Set(['the','a','an','in','of','and','to','on','в','и','на','из','с','во']);
+  const tokens = titles.map(title => title.split(' ').filter(word => word.length > 1 && !stop.has(word)));
+  const filtered = streams.filter(source => {
+    const release = `${source.title || source.name} ${source.filename || ''}`;
+    if (/\b(?:season|saison)\s*\d|сезон\s*[:\d]|\bS\d{1,2}E\d{1,3}\b/i.test(release)) return false;
+    const text = normalize(release), words = new Set(text.split(' '));
+    if (titles.length && !titles.some(title => text.includes(title)) && !tokens.some(list => list.length && list.filter(word => words.has(word)).length >= Math.max(1,Math.ceil(list.length*.75)))) return false;
+    const years = release.slice(0,350).match(/\b(?:19|20)\d{2}\b/g) || [];
+    return !/^\d{4}$/.test(year) || !years.length || years.includes(year);
+  });
+  return filtered.sort((a,b) => Number(a.seeders === 0)-Number(b.seeders === 0) || Number(Boolean(a.codecWarning))-Number(Boolean(b.codecWarning)) || Number(Boolean(b.russian))-Number(Boolean(a.russian)) || (b.seeders ?? -1)-(a.seeders ?? -1));
+}

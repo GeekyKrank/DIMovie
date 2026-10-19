@@ -1,5 +1,5 @@
 import { api, posterUrl } from './api.js';
-import { openPlayer, stopPlayer } from './player.js?v=compatibility-2';
+import { openPlayer, stopPlayer } from './player.js?v=movie-match-1';
 const $ = id => document.getElementById(id);
 const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false };
 let controller, detailController, searchTimer, selectedMovie = null, catalogueScroll = 0;
@@ -100,7 +100,7 @@ async function openMovie(movie) {
     const note = el('p', 'note');
     body.append(title, meta, genres, el('p', 'overview', details.overview || 'Описание пока не добавлено.'), actions, note);
     content.replaceChildren(image(details.poster_path, 'w342', 'movie-poster'), body);
-    openPlayer(details.title, posterUrl(details.backdrop_path, 'w1280'), details.external_ids?.imdb_id || details.imdb_id || '');
+    openPlayer(details.title, posterUrl(details.backdrop_path, 'w1280'), details.external_ids?.imdb_id || details.imdb_id || '', {originalTitle:details.original_title, year:details.release_date?.slice(0,4)});
     document.title = `${details.title} — DIMovie`;
   } catch (error) { if (!signal.aborted) content.replaceChildren(el('p', 'detail-body', error.message)); }
 }

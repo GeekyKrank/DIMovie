@@ -1,10 +1,10 @@
 import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback } from './transport.js?v=compatibility-2';
-import { searchSources, sortSources } from './sources.js?v=source-sort-1';
+import { searchSources, sortSources, matchMovieSources } from './sources.js?v=movie-match-1';
 import { setControlTitle } from './controls.js?v=compatibility-2';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let token = '', active = false, pollTimer, operation;
-let currentImdb = '', sourceController, sourceLoading = false, sessionPromise;
+let currentMovie = {}, currentImdb = '', sourceController, sourceLoading = false, sessionPromise;
 const video = $('embedded-video');
 async function call(path, data = {}, signal) {
   if (path !== '/session' && !token) {
@@ -51,7 +51,8 @@ export async function stopPlayer() {
     try { await call('/stop'); } catch (error) { message(error.message); }
   }
 }
-export function openPlayer(title = '', poster = '', imdb = '') {
+export function openPlayer(title = '', poster = '', imdb = '', movie = {}) {
+  currentMovie = {title, ...movie};
   setControlTitle(title || 'DIMovie');
   $('player-heading').textContent = 'Смотреть онлайн';
   video.setAttribute('aria-label', title ? `Видео: ${title}` : 'Видеоплеер');
@@ -88,11 +89,13 @@ async function findSources() {
   try {
     const result = await searchSources(currentImdb, signal);
     if (signal.aborted) return;
-    $('sources-status').textContent = result.streams.length ? '' : 'Источники не найдены. Попробуй повторить поиск позже.';
+    const matching = matchMovieSources(result.streams, currentMovie);
+    $('sources-status').textContent = matching.length ? '' : 'Подходящие раздачи этого фильма не найдены. Непохожие названия и другие годы скрыты.';
+    if (matching.length && matching.every(source => source.seeders === 0)) $('sources-status').textContent = 'Все найденные раздачи указаны с нулём раздающих. Доступность не подтверждена.';
     if (result.unavailable?.length) $('sources-status').textContent = result.streams.length ? 'Часть источников временно недоступна.' : 'Часть источников не ответила. Попробуй повторить поиск позже.';
-    displayedSources = result.streams;
+    displayedSources = matching;
     $('source-sorting').hidden = !displayedSources.length;
-    for (const source of result.streams) {
+    for (const source of matching) {
       const card = document.createElement('article'); card.className = 'source-card';
       const header = document.createElement('div'); header.className = 'source-title';
       const name = document.createElement('strong'); name.textContent = source.name; header.append(name);

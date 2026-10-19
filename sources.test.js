@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseStreams, searchSources, mergeSources, sortSources, SOURCE_PROVIDERS } from './site/sources.js';
+import { parseStreams, searchSources, mergeSources, sortSources, matchMovieSources, SOURCE_PROVIDERS } from './site/sources.js';
 test('Stremio hash, zero-based index, Russian hint, size and seeds', () => {
   const [source] = parseStreams({ streams: [{ infoHash: 'A'.repeat(40), fileIdx: 0, name: 'Torrentio 1080p', title: 'Movie 🇷🇺\n👤 125 💾 1.5 GB', behaviorHints: { filename: 'movie.mp4' } }] });
   assert.equal(source.hash, 'a'.repeat(40)); assert.equal(source.fileIdx, 0);
@@ -78,4 +78,11 @@ test('Source sorting orders quality, audio and peers without mutating original o
   assert.equal(sortSources(rows,'language',false,'uk')[0],rows[1]);
   assert.equal(sortSources(rows,'language')[0],rows[0]);
   assert.equal(rows[0].quality,'720p');
+});
+
+test('Movie matching excludes unrelated episodes, remakes and puts zero-seed sources last', () => {
+ const rows=[{title:'Futurama Season 6 Ghost in the Machines 2012',seeders:28},{title:'Призрак в доспехах / Ghost in the Shell 1995',seeders:0},{title:'Ghost.in.the.Shell.1995.1080p',seeders:509},{title:'Ghost in the Shell 2017',seeders:800}];
+ const result=matchMovieSources(rows,{title:'Призрак в доспехах',originalTitle:'Ghost in the Shell',year:'1995'});
+ assert.deepEqual(result,[rows[2],rows[1]]);
+ assert.equal(rows[0].seeders,28);
 });
