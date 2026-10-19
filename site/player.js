@@ -1,5 +1,5 @@
 import { configureTransport, seekPlayback, playbackTime, playbackDuration } from './transport.js?v=server-audio-2';
-import { searchSources } from './sources.js?v=multi-source-1';
+import { searchSources, sortSources } from './sources.js?v=source-sort-1';
 import { setControlTitle } from './controls.js?v=server-audio-2';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
@@ -59,10 +59,25 @@ export function openPlayer(title = '', poster = '', imdb = '') {
   currentImdb = imdb;
   findSources();
 }
+let displayedSources = [], sourceCards = new Map(), sortMode = '', sortAscending = false, sortLanguage = 'ru';
+function applySourceSort() {
+  const ordered = sortMode ? sortSources(displayedSources, sortMode, sortAscending, sortLanguage) : displayedSources;
+  $('source-list').replaceChildren(...ordered.map(source => sourceCards.get(source)));
+  for (const mode of ['quality','language','peers']) $('sort-' + mode).setAttribute('aria-pressed', String(sortMode === mode));
+  $('sort-quality').textContent = 'Качество ' + (sortMode === 'quality' && sortAscending ? '↑' : '↓');
+  $('sort-peers').textContent = 'Пиры ' + (sortMode === 'peers' && sortAscending ? '↑' : '↓');
+  $('sort-language').textContent = 'Озвучка: ' + (sortLanguage === 'uk' ? 'украинский' : 'русский');
+}
+for (const mode of ['quality','language','peers']) $('sort-' + mode).addEventListener('click', () => {
+  if (mode === 'language') { if (sortMode === mode) sortLanguage = sortLanguage === 'ru' ? 'uk' : 'ru'; }
+  else sortAscending = sortMode === mode ? !sortAscending : false;
+  sortMode = mode; applySourceSort();
+});
 async function findSources() {
   sourceController?.abort(); sourceController = new AbortController();
   const signal = sourceController.signal;
   $('source-list').replaceChildren();
+  displayedSources = []; sourceCards = new Map(); $('source-sorting').hidden = true;
   $('refresh-sources').disabled = true;
   if (!currentImdb) {
     $('sources-status').textContent = 'Выбери фильм в каталоге. Если у фильма нет IMDb ID, автоматический поиск недоступен.';
@@ -73,8 +88,10 @@ async function findSources() {
   try {
     const result = await searchSources(currentImdb, signal);
     if (signal.aborted) return;
-    $('sources-status').textContent = result.streams.length ? `${result.provider}: найдено ${result.streams.length}. Синяя метка — русский звук, жёлтая — украинский, по данным источника. Совместимость кодеков проверяется при запуске.` : 'Дополнение не нашло раздачи для этого фильма. Попробуй позже или выбери другой фильм.';
-    if (result.unavailable?.length) $('sources-status').textContent += ` Не ответили: ${result.unavailable.join(', ')}.`;
+    $('sources-status').textContent = result.streams.length ? '' : 'Источники не найдены. Попробуй повторить поиск позже.';
+    if (result.unavailable?.length) $('sources-status').textContent = result.streams.length ? 'Часть источников временно недоступна.' : 'Часть источников не ответила. Попробуй повторить поиск позже.';
+    displayedSources = result.streams;
+    $('source-sorting').hidden = !displayedSources.length;
     for (const source of result.streams) {
       const card = document.createElement('article'); card.className = 'source-card';
       const header = document.createElement('div'); header.className = 'source-title';
@@ -87,8 +104,9 @@ async function findSources() {
       play.addEventListener('click', () => loadTorrent('magnet:?xt=urn:btih:' + source.hash, source, true));
       card.append(header, description, meta);
       if (source.codecWarning) { const warning = document.createElement('p'); warning.className = 'note'; warning.textContent = 'HEVC/DTS/TrueHD может не поддерживаться этим браузером.'; card.append(warning); }
-      card.append(play); $('source-list').append(card);
+      card.append(play); sourceCards.set(source, card);
     }
+    applySourceSort();
   } catch (error) { if (!signal.aborted) $('sources-status').textContent = error.message; }
   finally { if (!signal.aborted) $('refresh-sources').disabled = false; }
 }

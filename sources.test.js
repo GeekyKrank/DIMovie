@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseStreams, searchSources, mergeSources, SOURCE_PROVIDERS } from './site/sources.js';
+import { parseStreams, searchSources, mergeSources, sortSources, SOURCE_PROVIDERS } from './site/sources.js';
 test('Stremio hash, zero-based index, Russian hint, size and seeds', () => {
   const [source] = parseStreams({ streams: [{ infoHash: 'A'.repeat(40), fileIdx: 0, name: 'Torrentio 1080p', title: 'Movie 🇷🇺\n👤 125 💾 1.5 GB', behaviorHints: { filename: 'movie.mp4' } }] });
   assert.equal(source.hash, 'a'.repeat(40)); assert.equal(source.fileIdx, 0);
@@ -67,4 +67,15 @@ test('All providers unavailable fails clearly and cancelled searches do not retu
     const controller=new AbortController();controller.abort();
     await assert.rejects(searchSources('tt0000002',controller.signal),{name:'AbortError'});
   } finally {globalThis.fetch=original;}
+});
+
+test('Source sorting orders quality, audio and peers without mutating original or promoting unknowns', () => {
+  const rows=[{quality:'720p',seeders:20,russian:true},{quality:'2160p',seeders:3,ukrainian:true},{quality:'',seeders:null}];
+  assert.equal(sortSources(rows,'quality')[0],rows[1]);
+  assert.equal(sortSources(rows,'quality',true)[0],rows[0]);
+  assert.equal(sortSources(rows,'peers')[0],rows[0]);
+  assert.equal(sortSources(rows,'peers',true)[2],rows[2]);
+  assert.equal(sortSources(rows,'language',false,'uk')[0],rows[1]);
+  assert.equal(sortSources(rows,'language')[0],rows[0]);
+  assert.equal(rows[0].quality,'720p');
 });

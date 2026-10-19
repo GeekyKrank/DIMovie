@@ -48,3 +48,5 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
   .cinema-player:fullscreen.controls-hidden .cinema-controls{transform:translateY(22px)}
   .cinema-player:fullscreen.controls-hidden .cinema-top{transform:translateY(-14px)}
 }
+
+.source-sorting{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}.source-sorting .secondary{font-size:12px;min-height:38px;padding:8px 14px}.source-sorting button[aria-pressed="true"]{background:#292929;border-color:#777;color:#fff}#sources-status:empty{display:none}

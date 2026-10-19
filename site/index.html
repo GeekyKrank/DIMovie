@@ -9,8 +9,8 @@
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://image.tmdb.org">
   <link rel="stylesheet" href="assets/fonts/unbounded.css">
-  <link rel="stylesheet" href="style.css?v=library-empty-1">
-  <script type="module" src="app.js?v=multi-source-1"></script>
+  <link rel="stylesheet" href="style.css?v=source-sort-1">
+  <script type="module" src="app.js?v=source-sort-1"></script>
 </head>
 <body>
   <header class="header">
@@ -55,7 +55,7 @@
           </div>
         </div>
         <p id="player-status" class="player-status" role="status" aria-live="polite"></p><p id="torrent-stats" class="note"></p>
-        <section id="source-panel" class="source-panel" aria-labelledby="sources-heading"><div class="sources-head"><h3 id="sources-heading">Доступные источники</h3><button id="refresh-sources" class="secondary">Повторить поиск</button></div><p id="sources-status" class="note" role="status" aria-live="polite"></p><div id="source-list" class="source-list"></div></section>
+        <section id="source-panel" class="source-panel" aria-labelledby="sources-heading"><div class="sources-head"><h3 id="sources-heading">Доступные источники</h3><button id="refresh-sources" class="secondary">Повторить поиск</button></div><div id="source-sorting" class="source-sorting" role="group" aria-label="Сортировка источников" hidden><button id="sort-quality" class="secondary" aria-pressed="false">Качество ↓</button><button id="sort-language" class="secondary" aria-pressed="false">Озвучка: русский</button><button id="sort-peers" class="secondary" aria-pressed="false">Пиры ↓</button></div><p id="sources-status" class="note" role="status" aria-live="polite"></p><div id="source-list" class="source-list"></div></section>
         <details id="player-setup" class="player-setup"><summary>Своя ссылка (дополнительно)</summary><div class="player-body">
       <div id="torrent-controls">
         <form id="torrent-form" class="player-form"><label for="torrent-link">Magnet-ссылка</label><input id="torrent-link" type="text" maxlength="4096" required placeholder="magnet:?xt=urn:btih:…" spellcheck="false"><button id="load-torrent" class="primary">Загрузить раздачу</button></form>

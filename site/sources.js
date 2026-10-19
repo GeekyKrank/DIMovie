@@ -86,3 +86,21 @@ export async function searchSources(imdb, signal) {
   cache.set(imdb, { data, expires: Date.now() + (unavailable.length ? 30_000 : 300_000) });
   return data;
 }
+
+export function sortSources(streams, mode, ascending = false, language = 'ru') {
+  const quality = source => {
+    const text = `${source.quality} ${source.name} ${source.title}`;
+    const value = text.match(/\b(4320|2160|1440|1080|720|576|480|360)p\b/i);
+    return value ? Number(value[1]) : /\b4k\b/i.test(text) ? 2160 : /\b8k\b/i.test(text) ? 4320 : null;
+  };
+  return [...streams].sort((a,b) => {
+    if (mode === 'language') {
+      const key = language === 'uk' ? 'ukrainian' : 'russian';
+      return Number(Boolean(b[key])) - Number(Boolean(a[key])) || (b.seeders ?? -1) - (a.seeders ?? -1);
+    }
+    const av = mode === 'quality' ? quality(a) : a.seeders;
+    const bv = mode === 'quality' ? quality(b) : b.seeders;
+    if (av == null || bv == null) return Number(av == null) - Number(bv == null);
+    return (ascending ? av-bv : bv-av) || (b.seeders ?? -1) - (a.seeders ?? -1);
+  });
+}
