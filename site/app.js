@@ -152,6 +152,7 @@ async function openAnimeMovie(movie) {
   $('catalog-page').hidden=true;$('watch-page').hidden=false;window.scrollTo({top:0,behavior:'instant'});
   const content=$('movie-content');content.replaceChildren(el('p','detail-body','Загружаем аниме…'));
   setupAnimePlayer(movie.title,animeImage(movie.poster_path));
+  $('anime-note').textContent='';
   $('anime-episode').replaceChildren();$('anime-quality').replaceChildren();$('anime-episode').disabled=true;$('anime-quality').disabled=true;
   try {
     const release=await animeRelease(movie.animeId,signal);if(signal.aborted)return;
@@ -160,7 +161,7 @@ async function openAnimeMovie(movie) {
     content.replaceChildren(animePoster(release.poster?.optimized?.preview || release.poster?.preview,'movie-poster'),body);
     document.title=release.name.main+' — DIMovie';
     animeEpisodes=playableEpisodes(release);
-    $('anime-note').textContent=animeEpisodes.length ? 'Озвучка AniLiberty. Видео загружается напрямую от провайдера; доступность и реклама зависят от него.' : release.is_blocked_by_geo || release.is_blocked_by_copyrights ? 'Провайдер ограничил доступ к этому аниме.' : 'В этом релизе пока нет доступных видеосерий.';
+    $('anime-note').textContent=animeEpisodes.length ? '' : release.is_blocked_by_geo || release.is_blocked_by_copyrights ? 'Провайдер ограничил доступ к этому аниме.' : 'В этом релизе пока нет доступных видеосерий.';
     for (const episode of animeEpisodes) {const option=el('option','',`${release.type?.value==='MOVIE'?'Фильм':'Серия '+episode.ordinal}${episode.name?' · '+episode.name:''}`);option.value=String(episode.ordinal);$('anime-episode').append(option);}
     updateAnimeQuality();$('anime-episode').disabled=!animeEpisodes.length;$('anime-quality').disabled=!animeEpisodes.length;
   } catch(error) {if(!signal.aborted)$('anime-note').textContent=error.message;}

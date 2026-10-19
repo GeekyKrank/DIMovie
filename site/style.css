@@ -60,3 +60,5 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 .watch-bar .anime-options label:first-child select{width:100%}
 #anime-panel>a{font-size:11px;color:#aaa}
 @media(max-width:650px){.watch-bar:has(.anime-options:not([hidden])){flex-wrap:wrap;padding:0 10px 8px;gap:6px}.watch-bar:has(.anime-options:not([hidden])) h2{margin-left:-10px}.watch-bar .anime-options{flex:1 1 100%;gap:10px;justify-content:flex-start}.watch-bar .anime-options label:first-child{flex:1}.watch-bar .anime-options label{font-size:9px;gap:5px}.watch-bar .anime-options select{font-size:10px;padding:8px 6px}}
+
+#anime-panel:has(#anime-note:empty){display:none}
