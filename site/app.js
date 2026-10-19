@@ -1,5 +1,5 @@
 import { api, posterUrl } from './api.js';
-import { openPlayer, stopPlayer } from './player.js?v=cinema-controls-1';
+import { openPlayer, stopPlayer } from './player.js?v=cinema-controls-2';
 const $ = id => document.getElementById(id);
 const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false };
 let controller, detailController, searchTimer, selectedMovie = null, catalogueScroll = 0;

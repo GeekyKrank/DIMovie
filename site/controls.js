@@ -4,7 +4,6 @@ let hideTimer, dragging = false, buffering = false, lastVolume = 1;
 const paths = {
   play: '<path d="m8 5 11 7-11 7Z" fill="currentColor" stroke="none"/>',
   pause: '<path d="M8 5v14M16 5v14" stroke-width="4"/>',
-  stop: '<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/>',
   sound: '<path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/>',
   mute: '<path d="M11 5 6 9H3v6h3l5 4Z"/><path d="m16 9 6 6m0-6-6 6"/>',
   full: '<path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/>',
@@ -114,6 +113,6 @@ video.addEventListener('waiting', () => { buffering = true; $('buffer-indicator'
 for (const event of ['playing', 'canplay', 'error', 'emptied']) video.addEventListener(event, () => { buffering = false; $('buffer-indicator').hidden = true; updatePlay(); });
 video.addEventListener('volumechange', updateVolume);
 document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(hideTimer); else showControls(); });
-icon($('stop-torrent'), 'stop'); icon($('fullscreen-video'), 'full');
+icon($('fullscreen-video'), 'full');
 updatePlay(); updateTime(); updateVolume();
 video.controls = false;

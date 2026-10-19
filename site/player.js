@@ -1,5 +1,5 @@
 import { searchSources } from './sources.js?v=source-search-1';
-import { setControlTitle } from './controls.js?v=cinema-controls-1';
+import { setControlTitle } from './controls.js?v=cinema-controls-2';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let token = '', active = false, pollTimer, operation;
@@ -142,7 +142,6 @@ video.addEventListener('error', () => message('Не удалось воспро�
 $('rewind-video').addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); });
 $('forward-video').addEventListener('click', () => { if (Number.isFinite(video.duration)) video.currentTime = Math.min(video.duration, video.currentTime + 10); });
 $('video-volume').addEventListener('input', event => { video.volume = Number(event.target.value); video.muted = video.volume === 0; });
-$('stop-torrent').addEventListener('click', async () => { await stopPlayer(); $('file-picker').hidden = true; message('Просмотр остановлен, ресурсы освобождены.'); });
 $('center-play').addEventListener('click', () => {
   if (video.getAttribute('src')) video.play().catch(() => message('Не удалось запустить видео. Попробуй другую раздачу.'));
   else if (!$('file-picker').hidden) $('start-video').click();
