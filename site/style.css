@@ -35,3 +35,4 @@ body:has(#catalog-page:not([hidden])) main{padding-top:0}
 @media(max-width:650px){.grid{gap:16px 7px}}
 body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 .cinema-player .player-state{display:none}
+.source-title{flex-wrap:wrap;justify-content:flex-start}.source-title strong{margin-right:auto}.ukrainian-badge{padding:4px 8px;border-radius:5px;background:#ffd52b;color:#171300;font-size:10px;font-weight:600;white-space:nowrap}.russian-badge{white-space:nowrap}

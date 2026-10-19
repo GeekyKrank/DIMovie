@@ -11,6 +11,18 @@ test('DRM, special headers, bad hashes and malformed records are excluded', () =
   const good = { infoHash: 'b'.repeat(40) };
   assert.deepEqual(parseStreams({ streams: [null, 'bad', {...good, drm:{}}, {...good, behaviorHints:{proxyHeaders:{}}}, {...good, externalUrl:'https://example.com'}, {infoHash:'../bad'}] }), []);
 });
+
+test('Ukrainian audio hints support flags, names and language codes without confusing UK releases', () => {
+  for (const title of ['Movie 🇺🇦', 'Movie UKR', 'Українська озвучка', 'Украинский дубляж', 'Movie / укр /']) {
+    assert.equal(parseStreams({streams:[{infoHash:'a'.repeat(40),title}]} )[0].ukrainian, true, title);
+  }
+  for (const language of ['uk', 'uk-UA', 'ukr', 'Ukrainian']) {
+    assert.equal(parseStreams({streams:[{infoHash:'a'.repeat(40),audioLanguages:[language]}]})[0].ukrainian,true);
+  }
+  const [both] = parseStreams({streams:[{infoHash:'a'.repeat(40),title:'🇷🇺 🇺🇦'}]});
+  assert.equal(both.russian && both.ukrainian,true);
+  assert.equal(parseStreams({streams:[{infoHash:'a'.repeat(40),title:'Movie UK English'}]})[0].ukrainian,false);
+});
 test('Sources are deduplicated, bounded and Russian hints precede other releases', () => {
   const streams = Array.from({length:90},(_,i)=>({infoHash:i.toString(16).padStart(40,'0'),title:'👤 9'}));
   streams.push({...streams[0]}, {infoHash:'f'.repeat(40),title:'Russian 👤 2'});

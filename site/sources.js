@@ -18,6 +18,7 @@ export function parseStreams(payload) {
     const seeds = title.match(/(?:👤|👥|seeders?\s*[:=]?)\s*(\d+)/i);
     result.push({ name, title, hash, fileIdx, size, seeders: seeds ? Number(seeds[1]) : null,
       russian: /\b(?:rus|russian|russia|ru)\b|русск|🇷🇺/i.test(text) || (Array.isArray(item.audioLanguages) && item.audioLanguages.some(v => /^(ru|rus|russian)$/i.test(v))),
+      ukrainian: /\b(?:ukr|ukrainian)\b|україн|украин|(?:^|[\s,;/+])укр(?:$|[\s,;/+])|🇺🇦/i.test(text) || (Array.isArray(item.audioLanguages) && item.audioLanguages.some(v => /^(?:uk(?:[-_]UA)?|ukr|ukrainian)$/i.test(v))),
       quality: text.match(/\b(2160p|1080p|720p|480p|4k)\b/i)?.[1] || '',
       filename: String(hints.filename || '').slice(0, 500), codecWarning: /\b(hevc|x265|h265|dts|truehd)\b/i.test(text) });
   }
