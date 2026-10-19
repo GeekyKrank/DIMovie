@@ -65,7 +65,8 @@ def stop_session(token, delete=False):
 
 def cleanup_once():
     for token in REGISTRY.expired():
-        stop_session(token, delete=True)
+        if REGISTRY.expire(token):
+            stop_transcoder(token)
     with LOCK:
         for key, stream in list(STREAMS.items()):
             if stream['expires'] <= time.monotonic():
@@ -124,8 +125,13 @@ def audio_info(stream):
 
 def upstream(data):
     req = urllib.request.Request('http://127.0.0.1:8090/torrents', json.dumps(data).encode(), {'Content-Type': 'application/json'})
-    with urllib.request.urlopen(req, timeout=20) as response:
-        return json.loads(response.read(2 * 1024 * 1024) or b'{}')
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            return json.loads(response.read(2 * 1024 * 1024) or b'{}')
+    except urllib.error.HTTPError as error:
+        if data.get('action') == 'rem' and error.code == 404:
+            return {}  # Engine expiry/removal raced our idempotent cleanup.
+        raise
 
 
 def valid_link(link):

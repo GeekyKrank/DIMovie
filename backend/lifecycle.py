@@ -153,3 +153,12 @@ class Registry:
         with self.lock:
             now = self.clock()
             return [token for token, s in self.sessions.items() if s['expires'] <= now or (not s.get('readers') and s['seen'] < now - 300)]
+
+    def expire(self, token):
+        with self.lock:
+            s = self.sessions.get(token)
+            now = self.clock()
+            if not s or not (s['expires'] <= now or (not s.get('readers') and s['seen'] < now - 300)):
+                return False
+            self.detach(token, delete=True)
+            return True

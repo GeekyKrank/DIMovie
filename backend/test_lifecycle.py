@@ -96,3 +96,11 @@ class RegistryTest(unittest.TestCase):
     def test_magnet_trackers_and_webseeds_are_not_forwarded(self):
         self.registry.attach('one',self.link+'&tr=http://127.0.0.1/private&ws=http://evil.test')
         self.assertEqual(self.calls[0]['link'],self.link)
+
+    def test_expiry_rechecks_lease_after_candidate_snapshot(self):
+        self.registry.attach('one',self.link);self.stream('one','first');self.now+=301
+        self.assertIn('one',self.registry.expired())
+        reader=self.registry.acquire('first')
+        self.assertFalse(self.registry.expire('one'))
+        self.assertTrue(self.registry.alive(reader))
+        self.registry.release(reader)
