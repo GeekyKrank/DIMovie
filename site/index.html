@@ -9,22 +9,20 @@
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://image.tmdb.org">
   <link rel="stylesheet" href="assets/fonts/montserrat.css">
-  <link rel="stylesheet" href="style.css?v=cinema-controls-2">
-  <script type="module" src="app.js?v=cinema-controls-2"></script>
+  <link rel="stylesheet" href="style.css?v=clean-header-1">
+  <script type="module" src="app.js?v=clean-header-1"></script>
 </head>
 <body>
   <header class="header">
     <div class="header-left"><a class="brand" href="./" aria-label="DIMovie — главная"><img src="assets/logo.png" width="46" height="46" alt=""><span>DI<span class="accent">Movie</span></span></a>
-    <nav aria-label="Разделы"><button id="catalog-tab" class="nav active" aria-pressed="true">Каталог</button><button id="library-tab" class="nav" aria-pressed="false">Избранное</button></nav></div>
-    <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Название фильма…" aria-label="Поиск фильмов" maxlength="180" autocomplete="off"><kbd aria-hidden="true">/</kbd></label>
-    <button id="player-link" class="player-link" type="button">Плеер</button>
+    <nav aria-label="Разделы"><button id="catalog-tab" class="nav active" aria-pressed="true">Каталог</button><button id="library-tab" class="nav" aria-pressed="false">Библиотека</button></nav></div>
+    <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Название фильма…" aria-label="Поиск фильмов" maxlength="180" autocomplete="off"></label>
   </header>
   <main>
     <section id="catalog-page">
     <section class="toolbar" aria-label="Категории фильмов">
       <div class="categories" id="categories"><button data-category="movie/popular" class="chip selected" aria-pressed="true">Популярное</button><button data-category="trending/movie/week" class="chip" aria-pressed="false">В тренде</button><button data-category="movie/top_rated" class="chip" aria-pressed="false">Лучшие</button><button data-category="movie/now_playing" class="chip" aria-pressed="false">Сейчас в кино</button></div>
     </section>
-    <div class="section-head"><h1 id="section-title">Популярное</h1><span id="page-number"></span></div>
     <p id="status" class="status" role="status" aria-live="polite"></p>
     <div id="grid" class="grid" aria-label="Фильмы"></div>
     <div class="pagination" id="pagination"><button id="previous" class="secondary" disabled>Назад</button><button id="next" class="primary" disabled>Дальше <span aria-hidden="true">→</span></button></div>

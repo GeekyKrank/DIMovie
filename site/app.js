@@ -1,5 +1,5 @@
 import { api, posterUrl } from './api.js';
-import { openPlayer, stopPlayer } from './player.js?v=cinema-controls-2';
+import { openPlayer, stopPlayer } from './player.js?v=clean-header-1';
 const $ = id => document.getElementById(id);
 const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false };
 let controller, detailController, searchTimer, selectedMovie = null, catalogueScroll = 0;
@@ -45,8 +45,7 @@ async function load() {
   $('catalog-tab').classList.toggle('active', !state.library); $('library-tab').classList.toggle('active', state.library);
   $('catalog-tab').setAttribute('aria-pressed', String(!state.library)); $('library-tab').setAttribute('aria-pressed', String(state.library));
   $('categories').hidden = state.library || !!state.query;
-  $('section-title').textContent = state.library ? 'Твоё избранное' : state.query ? `Результаты: ${state.query}` : document.querySelector('.chip.selected').textContent;
-  $('status').textContent = ''; $('page-number').textContent = '';
+  $('status').textContent = '';
   if (state.library) {
     const list = favorites.filter(m => m.title.toLocaleLowerCase('ru').includes(state.query.toLocaleLowerCase('ru')));
     $('grid').replaceChildren(...list.map(card));
@@ -60,7 +59,6 @@ async function load() {
     state.pages = Math.min(data.total_pages || 1, 500);
     $('grid').replaceChildren(...(data.results || []).map(card));
     if (!data.results?.length) $('status').textContent = 'Ничего не найдено. Попробуй другое название.';
-    $('page-number').textContent = `Страница ${state.page} из ${state.pages}`;
     $('previous').disabled = state.page <= 1; $('next').disabled = state.page >= state.pages;
   } catch (error) {
     if (signal.aborted) return;
@@ -110,15 +108,6 @@ async function showCatalogue() {
   await stopPlayer();
 }
 $('back-catalog').addEventListener('click', showCatalogue);
-$('player-link').addEventListener('click', () => {
-  if ($('watch-page').hidden) {
-    catalogueScroll = window.scrollY;
-    $('catalog-page').hidden = true; $('watch-page').hidden = false;
-    $('movie-content').replaceChildren(el('h1', 'standalone-heading', 'Видеоплеер'));
-    openPlayer();
-  }
-  $('inline-player').scrollIntoView({ block: 'start' });
-});
 $('search').addEventListener('input', () => {
   clearTimeout(searchTimer); controller?.abort();
   searchTimer = setTimeout(() => { state.query = $('search').value.trim(); state.page = 1; load(); }, 350);
