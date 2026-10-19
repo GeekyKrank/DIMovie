@@ -1,7 +1,7 @@
 <div align="center">
   <img src="site/assets/logo.png" width="76" alt="Енот — логотип DIMovie">
   <br><br>
-  <img src="docs/banner.svg" width="100%" alt="DIMovie — твоё кино, твой выбор">
+  <a href="https://geekykrank.github.io/DIMovie/" aria-label="Открыть сайт DIMovie"><img src="docs/banner.svg" width="100%" alt="DIMovie — твоё кино, твой выбор"></a>
   <br><br>
   <a href="https://geekykrank.github.io/DIMovie/"><img alt="Открыть DIMovie" src="https://img.shields.io/badge/ОТКРЫТЬ_САЙТ-FF272D?style=for-the-badge&amp;logo=googlechrome&amp;logoColor=black"></a>
   <a href="docs/STREAMING.md"><img alt="Архитектура" src="https://img.shields.io/badge/АРХИТЕКТУРА-202024?style=for-the-badge&amp;logo=readthedocs&amp;logoColor=white"></a>
