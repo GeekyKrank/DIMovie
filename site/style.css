@@ -39,3 +39,11 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 .audio-picker{position:relative}.audio-menu{font-size:24px}.audio-panel{position:absolute;right:0;bottom:54px;width:300px;max-width:calc(100vw - 32px);padding:16px;background:#171717;border:1px solid #444;border-radius:12px;box-shadow:0 8px 30px #0009;color:white;text-align:left}.audio-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:14px}.audio-head button{border:0;background:transparent;color:#ddd;font-size:24px;width:30px;height:30px}.audio-panel label{display:block;font-size:11px;color:#bbb;margin-bottom:6px}.audio-panel select{width:100%;padding:10px;background:#252525;border:1px solid #555;border-radius:6px;color:white;font:inherit;font-size:12px}.audio-panel p{font-size:11px;line-height:1.6;color:#bbb;margin:10px 0 0}.audio-panel select[hidden]+p{margin-top:0}.audio-panel:has(select[hidden])>label{display:none}
 
 .header .chip{font-size:10px;padding:9px 8px}.header-left{gap:22px}.header nav{gap:18px}.nav{font-size:12px}
+
+/* Fullscreen controls slide into view on pointer activity without layout work. */
+@media (prefers-reduced-motion:no-preference){
+  .cinema-player:fullscreen .cinema-controls,
+  .cinema-player:fullscreen .cinema-top{transition:opacity .22s ease,transform .28s cubic-bezier(.2,.7,.2,1);transform:translateY(0)}
+  .cinema-player:fullscreen.controls-hidden .cinema-controls{transform:translateY(22px)}
+  .cinema-player:fullscreen.controls-hidden .cinema-top{transform:translateY(-14px)}
+}
