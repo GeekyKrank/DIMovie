@@ -1,14 +1,21 @@
+import { normalizeNick, profileLibrary } from './profile.js?v=profiles-1';
 import { animeCatalog, animeRelease, animeImage, animeCard, playableEpisodes, findAnimeMovie } from './anime.js?v=anime-1';
 import { api, posterUrl } from './api.js';
 import { openPlayer, stopPlayer, setupAnimePlayer, startAnimeStream } from './player.js?v=anime-bar-1';
 const $ = id => document.getElementById(id);
 const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false, anime: false };
 let controller, detailController, searchTimer, selectedMovie = null, catalogueScroll = 0;
-let favorites = readFavorites();
+let profileNick = '';
+try { profileNick = normalizeNick(localStorage.getItem('dimovie-profile')); } catch {}
+let favorites = profileNick ? [] : readFavorites(), libraryRevision = 0, refreshFavorite = () => {};
+const restoredProfileNick=profileNick;
+let profileReady = profileNick ? profileLibrary(profileNick).then(data => {if(profileNick===restoredProfileNick && libraryRevision===0)favorites=data.movies;}).catch(()=>{}) : Promise.resolve();
+function updateAccountButton() { $('account-tab').textContent=profileNick ? '👤 '+profileNick : 'Войти';$('account-tab').title=profileNick ? 'Библиотека профиля '+profileNick : 'Войти по нику'; }
+updateAccountButton();
 function readFavorites() {
   try {
     const items = JSON.parse(localStorage.getItem('dimovie-favorites') || '[]');
-    return Array.isArray(items) ? items.filter(m => Number.isInteger(m.id) && typeof m.title === 'string').slice(0, 100) : [];
+    return Array.isArray(items) ? items.filter(m => (Number.isInteger(m.id) || Number.isInteger(m.animeId)) && typeof m.title === 'string').slice(0, 100) : [];
   } catch { return []; }
 }
 function el(tag, className, text) {
@@ -48,11 +55,18 @@ async function load() {
   $('anime-tab').classList.toggle('selected', state.anime); $('anime-tab').setAttribute('aria-pressed', String(state.anime));
   $('search').placeholder = state.anime ? 'Название аниме…' : 'Название фильма…';
   $('search').setAttribute('aria-label', state.anime ? 'Поиск аниме' : 'Поиск фильмов');
-  $('categories').hidden = state.library || (!state.anime && !!state.query);
+  $('categories').hidden = false;
+  document.querySelectorAll('.chip[data-category],#anime-tab').forEach(button=>{button.hidden=state.library || (!state.anime && !!state.query);});
   document.querySelectorAll('.chip[data-category]').forEach(button=>{const selected=!state.anime && button.dataset.category===state.category;button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));});
   $('status').textContent = '';
   $('status').classList.remove('library-empty');
   if (state.library) {
+    if (profileNick) {
+      const nick=profileNick, revision=libraryRevision;
+      $('status').textContent='Загружаем библиотеку…';
+      try {const data=await profileLibrary(nick,'get',{},signal);if(signal.aborted || nick!==profileNick)return;if(revision===libraryRevision)favorites=data.movies;$('status').textContent='';}
+      catch(error){if(signal.aborted)return;$('status').textContent='Не удалось обновить библиотеку. '+error.message;}
+    }
     const list = favorites.filter(m => m.title.toLocaleLowerCase('ru').includes(state.query.toLocaleLowerCase('ru')));
     $('grid').replaceChildren(...list.map(card));
     if (!list.length) {
@@ -92,15 +106,7 @@ async function openMovie(movie) {
     [details.vote_average > 0 ? `★ ${details.vote_average.toFixed(1)}` : '', (details.release_date || '').slice(0, 4), details.runtime ? `${details.runtime} мин` : '', 'Фильм'].filter(Boolean).forEach(text => meta.append(el('span', '', text)));
     const genres = el('div', 'genres', (details.genres || []).map(g => g.name).join(' · '));
     const actions = el('div', 'actions');
-    const favorite = el('button', 'primary');
-    const updateFavorite = () => { const saved = favorites.some(m => m.id === movie.id); favorite.textContent = saved ? 'Убрать из избранного' : '+ В избранное'; favorite.setAttribute('aria-pressed', String(saved)); };
-    updateFavorite();
-    favorite.addEventListener('click', () => {
-      const exists = favorites.some(m => m.id === movie.id);
-      const next = exists ? favorites.filter(m => m.id !== movie.id) : [{ id: details.id, title: details.title, poster_path: details.poster_path, release_date: details.release_date, vote_average: details.vote_average }, ...favorites].slice(0, 100);
-      try { localStorage.setItem('dimovie-favorites', JSON.stringify(next)); favorites = next; updateFavorite(); if (state.library) load(); }
-      catch { note.textContent = 'Браузер не разрешил сохранить избранное. Проверь доступ к хранилищу.'; }
-    });
+    const favorite = favoriteButton({id:details.id,title:details.title,poster_path:details.poster_path,release_date:details.release_date,vote_average:details.vote_average});
     const player = el('button', 'secondary', '▶ Смотреть онлайн'); player.addEventListener('click', () => $('inline-player').scrollIntoView({ block: 'start' }));
     actions.append(favorite, player);
     const note = el('p', 'note');
@@ -158,6 +164,7 @@ async function openAnimeMovie(movie) {
     const release=await animeRelease(movie.animeId,signal);if(signal.aborted)return;
     setupAnimePlayer(release.name.main,animeImage(release.poster?.optimized?.preview || release.poster?.preview));
     const body=el('div','detail-body');body.append(el('h1','',release.name.main),el('p','metadata',`${release.year} · ${release.type?.description || 'Аниме'} · AniLiberty`),el('p','overview',release.description || ''));
+    const animeActions=el('div','actions');animeActions.append(favoriteButton(animeCard(release)));body.append(animeActions);
     content.replaceChildren(animePoster(release.poster?.optimized?.preview || release.poster?.preview,'movie-poster'),body);
     document.title=release.name.main+' — DIMovie';
     animeEpisodes=playableEpisodes(release);
@@ -189,3 +196,38 @@ $('anime-quality').addEventListener('change',async()=>{
 });
 const linkedAnime=Number(new URLSearchParams(location.search).get('anime'));
 if(Number.isSafeInteger(linkedAnime)&&linkedAnime>0){state.anime=true;state.library=false;load();openAnimeMovie({animeId:linkedAnime,title:'Аниме'});}
+
+function favoriteButton(movie) {
+  const button=el('button','primary');
+  const refresh=()=>{const saved=favorites.some(row=>String(row.id)===String(movie.id));button.textContent=saved?'Убрать из библиотеки':'+ В библиотеку';button.setAttribute('aria-pressed',String(saved));};
+  refreshFavorite=refresh;refresh();profileReady.then(refresh);
+  button.addEventListener('click',async()=>{
+    button.disabled=true;
+    try {
+      await profileReady;
+      const saved=favorites.some(row=>String(row.id)===String(movie.id));
+      const record={...movie,title:movie.title.slice(0,200)};
+      libraryRevision++;
+      if(profileNick){const nick=profileNick;const data=await profileLibrary(nick,saved?'remove':'add',{movie:record});if(nick!==profileNick)return;favorites=data.movies;}
+      else {const next=saved?favorites.filter(row=>String(row.id)!==String(movie.id)):[record,...favorites].slice(0,100);localStorage.setItem('dimovie-favorites',JSON.stringify(next));favorites=next;}
+      refresh();if(state.library)load();
+    } catch(error){button.textContent='Не удалось сохранить — повторить';button.title=error.message;}
+    finally {button.disabled=false;}
+  });
+  return button;
+}
+$('account-tab').addEventListener('click',()=>{$('account-nick').value=profileNick;$('account-import').checked=false;$('account-status').textContent='';$('account-logout').hidden=!profileNick;$('account-dialog').showModal();});
+$('account-close').addEventListener('click',()=>$('account-dialog').close());
+$('account-form').addEventListener('submit',async event=>{
+  event.preventDefault();$('account-submit').disabled=true;$('account-logout').disabled=true;
+  try {
+    const nick=normalizeNick($('account-nick').value);
+    $('account-status').textContent='Открываем библиотеку…';
+    const guest=readFavorites();
+    const data=await profileLibrary(nick,$('account-import').checked && guest.length?'import':'get',$('account-import').checked && guest.length?{movies:guest}:{});
+    localStorage.setItem('dimovie-profile',data.nick);profileNick=data.nick;libraryRevision++;favorites=data.movies;profileReady=Promise.resolve();
+    updateAccountButton();refreshFavorite();$('account-dialog').close();if(state.library)load();
+  }catch(error){$('account-status').textContent=error.message;}
+  finally{$('account-submit').disabled=false;$('account-logout').disabled=false;}
+});
+$('account-logout').addEventListener('click',()=>{localStorage.removeItem('dimovie-profile');profileNick='';libraryRevision++;favorites=readFavorites();profileReady=Promise.resolve();updateAccountButton();refreshFavorite();$('account-dialog').close();if(state.library)load();});

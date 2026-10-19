@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check site/app.js && node --check site/api.js && node --check site/player.js && node --check site/sources.js && node --check site/controls.js && node --check site/transport.js && node --check site/anime.js && node --check site/hls-player.js"
+    "check": "node --check site/app.js && node --check site/api.js && node --check site/player.js && node --check site/sources.js && node --check site/controls.js && node --check site/transport.js && node --check site/anime.js && node --check site/hls-player.js && node --check site/profile.js"
   },
   "engines": {
     "node": ">=22"

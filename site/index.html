@@ -9,8 +9,8 @@
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://image.tmdb.org">
   <link rel="stylesheet" href="assets/fonts/unbounded.css">
-  <link rel="stylesheet" href="style.css?v=anime-footer-1">
-  <script type="module" src="app.js?v=anime-footer-1"></script>
+  <link rel="stylesheet" href="style.css?v=profiles-1">
+  <script type="module" src="app.js?v=profiles-1"></script>
 </head>
 <body>
   <header class="header">
@@ -18,7 +18,7 @@
     <nav aria-label="Разделы"><button id="catalog-tab" class="nav active" aria-pressed="true">Каталог</button><button id="library-tab" class="nav" aria-pressed="false">Библиотека</button></nav></div>
     <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Название фильма…" aria-label="Поиск фильмов" maxlength="180" autocomplete="off"></label>
     <section class="toolbar" aria-label="Категории фильмов">
-      <div class="categories" id="categories"><button data-category="movie/popular" class="chip selected" aria-pressed="true">Популярное</button><button id="anime-tab" class="chip" aria-pressed="false">Аниме</button><button data-category="movie/top_rated" class="chip" aria-pressed="false">Лучшие</button><button data-category="movie/now_playing" class="chip" aria-pressed="false">Сейчас в кино</button></div>
+      <div class="categories" id="categories"><button data-category="movie/popular" class="chip selected" aria-pressed="true">Популярное</button><button id="anime-tab" class="chip" aria-pressed="false">Аниме</button><button data-category="movie/top_rated" class="chip" aria-pressed="false">Лучшие</button><button id="account-tab" class="chip" aria-haspopup="dialog">Войти</button></div>
     </section>
 
   </header>
@@ -67,6 +67,18 @@
     </section>
   </main>
   <footer><a href="https://anilibria.top" target="_blank" rel="noopener noreferrer">Источник аниме: AniLiberty ↗</a> · <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">Данные и изображения TMDB</a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p><p>Каталог не гарантирует доступность видео. Используйте источники, на просмотр которых у вас есть разрешение.</p><a href="https://github.com/GeekyKrank/DIMovie" target="_blank" rel="noopener noreferrer">DIMovie на GitHub ↗</a></footer>
+  <dialog id="account-dialog" aria-labelledby="account-heading">
+    <form id="account-form" class="account-form">
+      <button id="account-close" class="account-close" type="button" aria-label="Закрыть вход">×</button>
+      <h2 id="account-heading">Библиотека по нику</h2>
+      <p>Введи один и тот же ник на любом устройстве, чтобы открыть свою библиотеку.</p>
+      <label for="account-nick">Ник</label><input id="account-nick" name="nickname" required minlength="3" maxlength="32" autocomplete="off" spellcheck="false" placeholder="Твой ник">
+      <p class="account-public">Без пароля: любой, кто введёт этот ник, сможет просматривать и менять библиотеку. Не используй ник для личных данных.</p>
+      <label class="account-import"><input id="account-import" type="checkbox"> Перенести сохранённые в этом браузере фильмы в этот профиль</label>
+      <p id="account-status" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="account-submit" class="primary" type="submit">Войти</button><button id="account-logout" class="secondary" type="button" hidden>Выйти</button></div>
+    </form>
+  </dialog>
   <noscript>Для поиска и загрузки каталога включите JavaScript.</noscript>
 </body>
 </html>
