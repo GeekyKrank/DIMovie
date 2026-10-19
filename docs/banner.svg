@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+<title id="title">DIMovie — твоё кино, твой выбор</title><desc id="desc">Чёрная обложка с красным акцентом, названием DIMovie и подписью Каталог. Библиотека. Встроенный плеер.</desc>
+<defs><radialGradient id="glow"><stop stop-color="#ff272d" stop-opacity=".2"/><stop offset="1" stop-color="#ff272d" stop-opacity="0"/></radialGradient></defs>
+<rect width="1200" height="320" rx="24" fill="#080808"/><rect x=".5" y=".5" width="1199" height="319" rx="24" fill="none" stroke="#292929"/>
+<ellipse cx="600" cy="110" rx="440" ry="210" fill="url(#glow)"/>
+<path d="M420 1h360" stroke="#ff272d" stroke-width="3"/>
+<text x="600" y="76" text-anchor="middle" fill="#ff5055" font-family="Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="5">ТВОЁ КИНО. ТВОЙ ВЫБОР.</text>
+<text x="600" y="172" text-anchor="middle" font-family="Arial,sans-serif" font-size="88" font-weight="800" letter-spacing="-4"><tspan fill="#f5f5f6">DI</tspan><tspan fill="#ff272d">Movie</tspan></text>
+<text x="600" y="219" text-anchor="middle" fill="#c4c4ca" font-family="Arial,sans-serif" font-size="19">Каталог · Библиотека · Встроенный плеер</text>
+<path d="M550 253h100" stroke="#ff272d" stroke-width="3" stroke-linecap="round"/>
+<text x="600" y="290" text-anchor="middle" fill="#81818b" font-family="Arial,sans-serif" font-size="13">Лёгкий интерфейс. Общий торрент-движок. Независимый просмотр.</text>
+</svg>
