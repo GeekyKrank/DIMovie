@@ -1,4 +1,4 @@
-import { playHls, stopHls } from './hls-player.js?v=anime-1';
+import { playHls, stopHls } from './hls-player.js?v=anime-bar-1';
 import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback } from './transport.js?v=anime-1';
 import { searchSources, sortSources, matchMovieSources } from './sources.js?v=movie-match-2';
 import { setControlTitle } from './controls.js?v=anime-1';
@@ -55,6 +55,7 @@ export async function stopPlayer() {
   }
 }
 export function openPlayer(title = '', poster = '', imdb = '', movie = {}) {
+  $('anime-options').hidden = true; $('toggle-source').hidden = false;
   $('anime-panel').hidden = true; $('source-panel').hidden = false; $('player-setup').hidden = false; $('toggle-source').textContent = 'Выбрать источник';
   $('video-hint').textContent = 'Выбери источник ниже, чтобы начать просмотр';
   currentMovie = {title, ...movie};
@@ -198,7 +199,7 @@ $('rewind-video').addEventListener('click', () => { seekPlayback(playbackTime() 
 $('forward-video').addEventListener('click', () => { if (Number.isFinite(playbackDuration())) seekPlayback(Math.min(playbackDuration(), playbackTime() + 10)); });
 $('video-volume').addEventListener('input', event => { video.volume = Number(event.target.value); video.muted = video.volume === 0; });
 $('center-play').addEventListener('click', () => {
-  if (directMode && !video.getAttribute('src')) { $('anime-start').click(); return; }
+  if (directMode && !video.getAttribute('src')) { $('video-shell').dispatchEvent(new Event('anime-play')); return; }
   if (video.getAttribute('src')) video.play().catch(() => message('Не удалось запустить видео. Попробуй другую раздачу.'));
   else if (!$('file-picker').hidden) $('start-video').click();
   else if (currentImdb) $('source-panel').scrollIntoView({ block: 'start' });
@@ -211,12 +212,13 @@ window.addEventListener('pagehide', () => {
 
 export function setupAnimePlayer(title, poster) {
   directMode=true;
+  $('anime-options').hidden=false;$('toggle-source').hidden=true;
   $('anime-panel').hidden=false;$('source-panel').hidden=true;$('player-setup').hidden=true;
   $('toggle-source').textContent='Серии и качество';
   $('player-heading').textContent='Смотреть аниме';
   setControlTitle(title);video.poster=poster || '';
   video.setAttribute('aria-label','Видео: '+title);
-  $('video-hint').hidden=false;$('video-hint').textContent='Выбери серию и нажми «Смотреть»';
+  $('video-hint').hidden=false;$('video-hint').textContent='Выбери серию и нажми ▶ на плеере';
   message('Прямой поток AniLiberty · без торрент-пиров');
 }
 export async function startAnimeStream(url, start=0) {

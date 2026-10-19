@@ -52,3 +52,11 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 .source-sorting{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}.source-sorting .secondary{font-size:12px;min-height:38px;padding:8px 14px}.source-sorting button[aria-pressed="true"]{background:#292929;border-color:#777;color:#fff}#sources-status:empty{display:none}
 
 .anime-options{display:flex;gap:14px;align-items:end;flex-wrap:wrap;margin:20px 0}.anime-options label{display:grid;gap:8px;font-size:12px;min-width:140px}.anime-options select{font:inherit;font-size:13px;padding:12px;background:#181818;color:#fff;border:1px solid #444;border-radius:8px;max-width:100%}.anime-options label:first-child{flex:1;max-width:560px}#anime-note{line-height:1.8}.source-panel>.sources-head>a{color:#aaa;font-size:12px}
+
+.watch-bar .anime-options{flex:1;justify-content:center;align-items:center;flex-wrap:nowrap;gap:14px;margin:0;padding:6px 0;min-width:0}
+.watch-bar .anime-options label{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap;font-size:10px}
+.watch-bar .anime-options label:first-child{flex:0 1 420px}
+.watch-bar .anime-options select{min-width:0;max-width:100%;padding:8px 10px;font-size:11px}
+.watch-bar .anime-options label:first-child select{width:100%}
+#anime-panel>a{font-size:11px;color:#aaa}
+@media(max-width:650px){.watch-bar:has(.anime-options:not([hidden])){flex-wrap:wrap;padding:0 10px 8px;gap:6px}.watch-bar:has(.anime-options:not([hidden])) h2{margin-left:-10px}.watch-bar .anime-options{flex:1 1 100%;gap:10px;justify-content:flex-start}.watch-bar .anime-options label:first-child{flex:1}.watch-bar .anime-options label{font-size:9px;gap:5px}.watch-bar .anime-options select{font-size:10px;padding:8px 6px}}

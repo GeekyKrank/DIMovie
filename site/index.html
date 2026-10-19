@@ -9,8 +9,8 @@
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="preconnect" href="https://image.tmdb.org">
   <link rel="stylesheet" href="assets/fonts/unbounded.css">
-  <link rel="stylesheet" href="style.css?v=anime-1">
-  <script type="module" src="app.js?v=anime-1"></script>
+  <link rel="stylesheet" href="style.css?v=anime-bar-1">
+  <script type="module" src="app.js?v=anime-bar-1"></script>
 </head>
 <body>
   <header class="header">
@@ -33,7 +33,7 @@
       <button id="back-catalog" class="back-catalog">← К каталогу</button>
       <article id="movie-content"></article>
       <section id="inline-player" class="inline-player" aria-labelledby="player-heading">
-        <div class="watch-bar"><h2 id="player-heading">Смотреть онлайн</h2><button id="toggle-source" class="source-button" aria-controls="source-panel">Выбрать источник</button></div>
+        <div class="watch-bar"><h2 id="player-heading">Смотреть онлайн</h2><div id="anime-options" class="anime-options" hidden><label>Серия<select id="anime-episode" disabled></select></label><label>Качество<select id="anime-quality" disabled></select></label></div><button id="toggle-source" class="source-button" aria-controls="source-panel">Выбрать источник</button></div>
         <div id="video-shell" class="video-shell cinema-player" tabindex="0" role="group" aria-label="Видеоплеер">
           <video id="embedded-video" controls playsinline preload="metadata" referrerpolicy="no-referrer"></video>
           <div class="cinema-top"><span id="control-title">DIMovie</span><span id="player-state" class="player-state">Готов к просмотру</span></div>
@@ -55,7 +55,7 @@
           </div>
         </div>
         <p id="player-status" class="player-status" role="status" aria-live="polite"></p><p id="torrent-stats" class="note"></p>
-        <section id="anime-panel" class="source-panel" hidden><div class="sources-head"><h3>Серии и качество</h3><a href="https://anilibria.top" target="_blank" rel="noopener noreferrer">AniLiberty ↗</a></div><div class="anime-options"><label>Серия<select id="anime-episode"></select></label><label>Качество<select id="anime-quality"></select></label><button id="anime-start" class="primary">▶ Смотреть</button></div><p id="anime-note" class="note"></p></section><section id="source-panel" class="source-panel" aria-labelledby="sources-heading"><div class="sources-head"><h3 id="sources-heading">Доступные источники</h3><button id="refresh-sources" class="secondary">Повторить поиск</button></div><div id="source-sorting" class="source-sorting" role="group" aria-label="Сортировка источников" hidden><button id="sort-quality" class="secondary" aria-pressed="false">Качество ↓</button><button id="sort-language" class="secondary" aria-pressed="false">Озвучка: русский</button><button id="sort-peers" class="secondary" aria-pressed="false">Пиры ↓</button></div><p id="sources-status" class="note" role="status" aria-live="polite"></p><div id="source-list" class="source-list"></div></section>
+        <section id="anime-panel" class="source-panel" hidden><a href="https://anilibria.top" target="_blank" rel="noopener noreferrer">Источник: AniLiberty ↗</a><p id="anime-note" class="note"></p></section><section id="source-panel" class="source-panel" aria-labelledby="sources-heading"><div class="sources-head"><h3 id="sources-heading">Доступные источники</h3><button id="refresh-sources" class="secondary">Повторить поиск</button></div><div id="source-sorting" class="source-sorting" role="group" aria-label="Сортировка источников" hidden><button id="sort-quality" class="secondary" aria-pressed="false">Качество ↓</button><button id="sort-language" class="secondary" aria-pressed="false">Озвучка: русский</button><button id="sort-peers" class="secondary" aria-pressed="false">Пиры ↓</button></div><p id="sources-status" class="note" role="status" aria-live="polite"></p><div id="source-list" class="source-list"></div></section>
         <details id="player-setup" class="player-setup"><summary>Своя ссылка (дополнительно)</summary><div class="player-body">
       <div id="torrent-controls">
         <form id="torrent-form" class="player-form"><label for="torrent-link">Magnet-ссылка</label><input id="torrent-link" type="text" maxlength="4096" required placeholder="magnet:?xt=urn:btih:…" spellcheck="false"><button id="load-torrent" class="primary">Загрузить раздачу</button></form>
