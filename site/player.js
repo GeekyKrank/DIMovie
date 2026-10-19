@@ -1,4 +1,5 @@
 import { searchSources } from './sources.js?v=source-search-1';
+import { setControlTitle } from './controls.js?v=cinema-controls-1';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let token = '', active = false, pollTimer, operation;
@@ -49,6 +50,7 @@ export async function stopPlayer() {
   }
 }
 export function openPlayer(title = '', poster = '', imdb = '') {
+  setControlTitle(title || 'DIMovie');
   $('player-heading').textContent = 'Смотреть онлайн';
   video.setAttribute('aria-label', title ? `Видео: ${title}` : 'Видеоплеер');
   if (poster) video.poster = poster; else video.removeAttribute('poster');

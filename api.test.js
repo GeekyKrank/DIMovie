@@ -6,7 +6,7 @@ test('player and navigation have all required DOM controls, with no duplicate ID
   const markup = readFileSync(new URL('./site/index.html', import.meta.url), 'utf8');
   const ids = [...markup.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);
   assert.equal(new Set(ids).size, ids.length);
-  for (const file of ['app.js', 'player.js']) {
+  for (const file of ['app.js', 'player.js', 'controls.js']) {
     const code = readFileSync(new URL('./site/' + file, import.meta.url), 'utf8');
     for (const match of code.matchAll(/\$\('([^']+)'\)/g)) assert.ok(ids.includes(match[1]), `${file}: missing #${match[1]}`);
   }
