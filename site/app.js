@@ -1,7 +1,8 @@
+import { animeCatalog, animeRelease, animeImage, animeCard, playableEpisodes, findAnimeMovie } from './anime.js?v=anime-1';
 import { api, posterUrl } from './api.js';
-import { openPlayer, stopPlayer } from './player.js?v=movie-match-2';
+import { openPlayer, stopPlayer, setupAnimePlayer, startAnimeStream } from './player.js?v=anime-1';
 const $ = id => document.getElementById(id);
-const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false };
+const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false, anime: false };
 let controller, detailController, searchTimer, selectedMovie = null, catalogueScroll = 0;
 let favorites = readFavorites();
 function readFavorites() {
@@ -27,7 +28,7 @@ function image(path, size, className) {
 function card(movie) {
   const node = el('button', 'card'); node.type = 'button';
   node.setAttribute('aria-label', movie.title);
-  const poster = el('div', 'poster'); poster.append(image(movie.poster_path, 'w342'));
+  const poster = el('div', 'poster'); poster.append(movie.animeId ? animePoster(movie.poster_path, '') : image(movie.poster_path, 'w342'));
   if (movie.vote_average > 0) poster.append(el('span', 'rating', `★ ${movie.vote_average.toFixed(1)}`));
   node.append(poster, el('h3', '', movie.title), el('span', 'year', (movie.release_date || '').slice(0, 4) || 'Дата не указана'));
   node.addEventListener('click', () => openMovie(movie)); return node;
@@ -42,9 +43,13 @@ async function load() {
   const signal = controller.signal;
   $('retry').hidden = true; $('previous').disabled = true; $('next').disabled = true;
   $('pagination').hidden = state.library;
-  $('catalog-tab').classList.toggle('active', !state.library); $('library-tab').classList.toggle('active', state.library);
-  $('catalog-tab').setAttribute('aria-pressed', String(!state.library)); $('library-tab').setAttribute('aria-pressed', String(state.library));
-  $('categories').hidden = state.library || !!state.query;
+  $('catalog-tab').classList.toggle('active', !state.library && !state.anime); $('library-tab').classList.toggle('active', state.library);
+  $('catalog-tab').setAttribute('aria-pressed', String(!state.library && !state.anime)); $('library-tab').setAttribute('aria-pressed', String(state.library));
+  $('anime-tab').classList.toggle('selected', state.anime); $('anime-tab').setAttribute('aria-pressed', String(state.anime));
+  $('search').placeholder = state.anime ? 'Название аниме…' : 'Название фильма…';
+  $('search').setAttribute('aria-label', state.anime ? 'Поиск аниме' : 'Поиск фильмов');
+  $('categories').hidden = state.library || (!state.anime && !!state.query);
+  document.querySelectorAll('.chip[data-category]').forEach(button=>{const selected=!state.anime && button.dataset.category===state.category;button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));});
   $('status').textContent = '';
   $('status').classList.remove('library-empty');
   if (state.library) {
@@ -58,7 +63,7 @@ async function load() {
   }
   skeletons(); $('grid').setAttribute('aria-busy', 'true');
   try {
-    const data = await api(state.query ? 'search/movie' : state.category, { page: state.page, ...(state.query ? { query: state.query } : {}) }, signal);
+    const data = state.anime ? await animeCatalog(state.query, state.page, signal) : await api(state.query ? 'search/movie' : state.category, { page: state.page, ...(state.query ? { query: state.query } : {}) }, signal);
     if (signal.aborted) return;
     state.pages = Math.min(data.total_pages || 1, 500);
     $('grid').replaceChildren(...(data.results || []).map(card));
@@ -70,6 +75,7 @@ async function load() {
   } finally { if (!signal.aborted) $('grid').removeAttribute('aria-busy'); }
 }
 async function openMovie(movie) {
+  if (movie.animeId) return openAnimeMovie(movie);
   if (selectedMovie?.id !== movie.id) await stopPlayer();
   catalogueScroll = window.scrollY;
   selectedMovie = movie;
@@ -102,6 +108,12 @@ async function openMovie(movie) {
     content.replaceChildren(image(details.poster_path, 'w342', 'movie-poster'), body);
     openPlayer(details.title, posterUrl(details.backdrop_path, 'w1280'), details.external_ids?.imdb_id || details.imdb_id || '', {originalTitle:details.original_title, year:details.release_date?.slice(0,4)});
     document.title = `${details.title} — DIMovie`;
+    if ((details.genres || []).some(genre => genre.id === 16)) findAnimeMovie(details.title, details.release_date?.slice(0,4), signal).then(release => {
+      if (!release || signal.aborted) return;
+      const button=el('button','secondary','▶ Смотреть через AniLiberty');
+      button.addEventListener('click',()=>openAnimeMovie(animeCard(release)));actions.prepend(button);
+    }).catch(()=>{});
+
   } catch (error) { if (!signal.aborted) content.replaceChildren(el('p', 'detail-body', error.message)); }
 }
 async function showCatalogue() {
@@ -117,12 +129,61 @@ $('search').addEventListener('input', () => {
   searchTimer = setTimeout(() => { state.query = $('search').value.trim(); state.page = 1; load(); }, 350);
   if (!$('watch-page').hidden) showCatalogue();
 });
-document.querySelectorAll('.chip').forEach(button => button.addEventListener('click', () => {
-  clearTimeout(searchTimer); if (!$('watch-page').hidden) showCatalogue(); state.category = button.dataset.category; state.page = 1; state.query = ''; $('search').value = '';
-  document.querySelectorAll('.chip').forEach(b => { b.classList.toggle('selected', b === button); b.setAttribute('aria-pressed', String(b === button)); }); load();
+document.querySelectorAll('.chip[data-category]').forEach(button => button.addEventListener('click', () => {
+  clearTimeout(searchTimer); if (!$('watch-page').hidden) showCatalogue(); state.anime = false; state.library = false; state.category = button.dataset.category; state.page = 1; state.query = ''; $('search').value = '';
+  document.querySelectorAll('.chip[data-category]').forEach(b => { b.classList.toggle('selected', b === button); b.setAttribute('aria-pressed', String(b === button)); }); load();
 }));
-for (const [id, library] of [['catalog-tab', false], ['library-tab', true]]) $(id).addEventListener('click', () => { clearTimeout(searchTimer); showCatalogue(); state.library = library; state.page = 1; state.query = ''; $('search').value = ''; load(); });
+for (const [id, library] of [['catalog-tab', false], ['library-tab', true]]) $(id).addEventListener('click', () => { clearTimeout(searchTimer); showCatalogue(); state.library = library; state.anime = false; state.page = 1; state.query = ''; $('search').value = ''; load(); });
 for (const [id, delta] of [['previous', -1], ['next', 1]]) $(id).addEventListener('click', () => { state.page += delta; load(); window.scrollTo({ top: 0, behavior: 'instant' }); });
+$('anime-tab').addEventListener('click',()=>{clearTimeout(searchTimer);showCatalogue();state.anime=true;state.library=false;state.page=1;state.query='';$('search').value='';load();});
 $('retry').addEventListener('click', load);
 document.addEventListener('keydown', event => { if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) { event.preventDefault(); $('search').focus(); } });
 load();
+
+function animePoster(path, className) {
+  const src=animeImage(path);if (!src)return el('div',className);
+  const img=el('img',className);img.src=src;img.alt='';img.loading='lazy';img.decoding='async';return img;
+}
+let animeEpisodes=[];
+async function openAnimeMovie(movie) {
+  detailController?.abort();detailController=new AbortController();const signal=detailController.signal;
+  await stopPlayer();if(signal.aborted)return;
+  catalogueScroll=window.scrollY;selectedMovie=null;
+  $('catalog-page').hidden=true;$('watch-page').hidden=false;window.scrollTo({top:0,behavior:'instant'});
+  const content=$('movie-content');content.replaceChildren(el('p','detail-body','Загружаем аниме…'));
+  setupAnimePlayer(movie.title,animeImage(movie.poster_path));
+  $('anime-episode').replaceChildren();$('anime-quality').replaceChildren();$('anime-start').disabled=true;
+  try {
+    const release=await animeRelease(movie.animeId,signal);if(signal.aborted)return;
+    setupAnimePlayer(release.name.main,animeImage(release.poster?.optimized?.preview || release.poster?.preview));
+    const body=el('div','detail-body');body.append(el('h1','',release.name.main),el('p','metadata',`${release.year} · ${release.type?.description || 'Аниме'} · AniLiberty`),el('p','overview',release.description || ''));
+    content.replaceChildren(animePoster(release.poster?.optimized?.preview || release.poster?.preview,'movie-poster'),body);
+    document.title=release.name.main+' — DIMovie';
+    animeEpisodes=playableEpisodes(release);
+    $('anime-note').textContent=animeEpisodes.length ? 'Озвучка AniLiberty. Видео загружается напрямую от провайдера; доступность и реклама зависят от него.' : release.is_blocked_by_geo || release.is_blocked_by_copyrights ? 'Провайдер ограничил доступ к этому аниме.' : 'В этом релизе пока нет доступных видеосерий.';
+    for (const episode of animeEpisodes) {const option=el('option','',`${release.type?.value==='MOVIE'?'Фильм':'Серия '+episode.ordinal}${episode.name?' · '+episode.name:''}`);option.value=String(episode.ordinal);$('anime-episode').append(option);}
+    updateAnimeQuality();$('anime-start').disabled=!animeEpisodes.length;
+  } catch(error) {if(!signal.aborted)$('anime-note').textContent=error.message;}
+}
+function updateAnimeQuality() {
+  const episode=animeEpisodes.find(episode=>String(episode.ordinal)===$('anime-episode').value);
+  const previous=$('anime-quality').value || '720';$('anime-quality').replaceChildren();
+  for (const quality of episode?.qualities || []) {const option=el('option','',quality.quality+'p');option.value=String(quality.quality);$('anime-quality').append(option);}
+  if ([...$('anime-quality').options].some(option=>option.value===previous))$('anime-quality').value=previous;
+}
+$('anime-episode').addEventListener('change',updateAnimeQuality);
+$('anime-start').addEventListener('click',async()=>{
+  const episode=animeEpisodes.find(episode=>String(episode.ordinal)===$('anime-episode').value);
+  const quality=episode?.qualities.find(quality=>String(quality.quality)===$('anime-quality').value);
+  if(!quality)return;
+  try {await startAnimeStream(quality.url);$('video-shell').scrollIntoView({block:'center'});}catch(error){$('player-status').textContent=error.message;}
+});
+
+$('anime-quality').addEventListener('change',async()=>{
+  const video=$('embedded-video');if(!video.getAttribute('src'))return;
+  const episode=animeEpisodes.find(episode=>String(episode.ordinal)===$('anime-episode').value);
+  const quality=episode?.qualities.find(quality=>String(quality.quality)===$('anime-quality').value);
+  if(quality)try{await startAnimeStream(quality.url,video.currentTime);}catch(error){$('player-status').textContent=error.message;}
+});
+const linkedAnime=Number(new URLSearchParams(location.search).get('anime'));
+if(Number.isSafeInteger(linkedAnime)&&linkedAnime>0){state.anime=true;state.library=false;load();openAnimeMovie({animeId:linkedAnime,title:'Аниме'});}

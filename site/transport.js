@@ -14,7 +14,8 @@ export function originalAudio() {
   video.addEventListener('loadedmetadata', () => { video.currentTime = time; if (resume) video.play().catch(() => {}); }, {once:true});
 }
 export async function serverAudioTracks() {
-  if (!source || !loader) throw new Error('Сначала запусти фильм.');
+  if (!source) throw new Error('Сначала запусти фильм.');
+  if (!loader) throw new Error('У этого потока озвучка задана AniLiberty. Серверная смена звука не используется.');
   if (info) return info;
   pending?.abort(); const request = new AbortController(); pending = request;
   const result = await loader(request.signal);
