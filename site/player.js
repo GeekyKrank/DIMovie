@@ -1,5 +1,6 @@
+import { configureTransport, seekPlayback, playbackTime, playbackDuration } from './transport.js?v=server-audio-1';
 import { searchSources } from './sources.js?v=source-search-2';
-import { setControlTitle } from './controls.js?v=audio-menu-1';
+import { setControlTitle } from './controls.js?v=server-audio-1';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let token = '', active = false, pollTimer, operation;
@@ -41,6 +42,7 @@ async function statistics() {
 export async function stopPlayer() {
   sourceController?.abort();
   operation?.abort(); clearTimeout(pollTimer);
+  configureTransport();
   video.pause(); video.removeAttribute('src'); video.load();
   $('file-picker').hidden = true;
   $('center-play').hidden = false; $('video-hint').hidden = false; $('torrent-stats').textContent = '';
@@ -127,6 +129,7 @@ async function startVideo() {
   $('start-video').disabled = true; message('Накапливаем буфер…');
   try {
     const result = await call('/play', { index: Number($('video-file').value) });
+    configureTransport(BASE + result.path, signal => call('/audio-info', {stream:result.path.split('/').pop()}, signal));
     video.src = BASE + result.path; video.load();
     $('video-hint').hidden = true; $('player-setup').open = false;
     $('video-shell').scrollIntoView({ block: 'center' });
@@ -140,8 +143,8 @@ video.addEventListener('playing', () => { $('center-play').hidden = true; messag
 video.addEventListener('pause', () => { $('center-play').hidden = false; });
 video.addEventListener('waiting', () => message('Накапливаем буфер. Скорость зависит от доступных пиров.'));
 video.addEventListener('error', () => message('Не удалось воспроизвести видео. Браузер может не поддерживать кодек этой раздачи. Попробуй MP4 с H.264/AAC.'));
-$('rewind-video').addEventListener('click', () => { video.currentTime = Math.max(0, video.currentTime - 10); });
-$('forward-video').addEventListener('click', () => { if (Number.isFinite(video.duration)) video.currentTime = Math.min(video.duration, video.currentTime + 10); });
+$('rewind-video').addEventListener('click', () => { seekPlayback(playbackTime() - 10); });
+$('forward-video').addEventListener('click', () => { if (Number.isFinite(playbackDuration())) seekPlayback(Math.min(playbackDuration(), playbackTime() + 10)); });
 $('video-volume').addEventListener('input', event => { video.volume = Number(event.target.value); video.muted = video.volume === 0; });
 $('center-play').addEventListener('click', () => {
   if (video.getAttribute('src')) video.play().catch(() => message('Не удалось запустить видео. Попробуй другую раздачу.'));

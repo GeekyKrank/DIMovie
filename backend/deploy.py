@@ -4,6 +4,7 @@ import subprocess
 
 run = lambda *args: subprocess.run(args, check=True)
 stage = Path(__file__).resolve().parent
+run('apt-get', 'install', '-y', '--no-install-recommends', 'ffmpeg')
 assert not Path('/etc/nginx/sites-available/donbot').exists(), 'Wrong host'
 run('install', '-d', '-m', '755', '/opt/dimovie-player')
 run('install', '-m', '644', str(stage / 'player_bridge.py'), '/opt/dimovie-player/player_bridge.py')

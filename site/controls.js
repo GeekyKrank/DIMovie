@@ -1,3 +1,4 @@
+import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback } from './transport.js?v=server-audio-1';
 import { audioLabel, selectAudioTrack } from './audio.js?v=audio-menu-1';
 const $ = id => document.getElementById(id);
 const video = $('embedded-video'), shell = $('video-shell');
@@ -28,16 +29,16 @@ function showControls() {
   }, 3000);
 }
 function updateTime() {
-  const duration = Number.isFinite(video.duration) ? video.duration : 0;
+  const duration = Number.isFinite(playbackDuration()) ? playbackDuration() : 0;
   if (!dragging) {
-    $('video-seek').value = duration ? String(video.currentTime / duration * 1000) : '0';
-    $('video-time').replaceChildren(document.createTextNode(formatTime(video.currentTime) + ' '), Object.assign(document.createElement('span'), {textContent: '/ ' + formatTime(duration)}));
+    $('video-seek').value = duration ? String(playbackTime() / duration * 1000) : '0';
+    $('video-time').replaceChildren(document.createTextNode(formatTime(playbackTime()) + ' '), Object.assign(document.createElement('span'), {textContent: '/ ' + formatTime(duration)}));
   }
   $('video-seek').disabled = !duration;
-  $('video-seek').setAttribute('aria-valuetext', `${formatTime(video.currentTime)} из ${formatTime(duration)}`);
-  const played = duration ? video.currentTime / duration * 100 : 0;
+  $('video-seek').setAttribute('aria-valuetext', `${formatTime(playbackTime())} из ${formatTime(duration)}`);
+  const played = duration ? playbackTime() / duration * 100 : 0;
   let buffered = played;
-  if (duration && video.buffered.length) buffered = video.buffered.end(video.buffered.length - 1) / duration * 100;
+  if (duration && video.buffered.length) buffered = (playbackTime() - video.currentTime + video.buffered.end(video.buffered.length - 1)) / duration * 100;
   $('video-seek').style.setProperty('--played', `${Math.min(100, played)}%`);
   $('video-seek').style.setProperty('--buffered', `${Math.min(100, buffered)}%`);
 }
@@ -72,7 +73,9 @@ async function fullscreen() {
   showControls();
 }
 $('toggle-play').addEventListener('click', togglePlay);
+let audioMode = 'native', audioLoading = false;
 function refreshAudio() {
+  if (audioMode === 'server') return;
   const select = $('audio-track');
   select.replaceChildren();
   const tracks = video.audioTracks;
@@ -89,19 +92,35 @@ function refreshAudio() {
     : tracks.length === 1 ? 'Браузер обнаружил одну звуковую дорожку.' : 'Выбери язык или название озвучки. Список получен из файла.';
 }
 function closeAudio() { $('audio-panel').hidden = true; $('audio-menu').setAttribute('aria-expanded', 'false'); showControls(); }
-$('audio-menu').addEventListener('click', () => {
+$('audio-menu').addEventListener('click', async () => {
   const opening = $('audio-panel').hidden;
   $('audio-panel').hidden = !opening; $('audio-menu').setAttribute('aria-expanded', String(opening));
-  if (opening) refreshAudio(); showControls();
+  if (opening) {
+    refreshAudio();
+    if (video.getAttribute('src') && !video.audioTracks?.length && !audioLoading) {
+      audioLoading = true; $('audio-message').textContent = 'Сервер определяет дорожки… Это может занять до 40 секунд.';
+      try {
+        const info = await serverAudioTracks(); audioMode = 'server';
+        $('audio-track').replaceChildren();
+        const original = document.createElement('option'); original.value = ''; original.textContent = 'Исходный звук'; $('audio-track').append(original);
+        for (const track of info.tracks) { const option = document.createElement('option'); option.value = String(track.index); option.textContent = audioLabel(track, track.index) + (track.codec ? ' · ' + track.codec.toUpperCase() : ''); $('audio-track').append(option); }
+        $('audio-track').hidden = !info.tracks.length; $('audio-track').disabled = !info.tracks.length;
+        $('audio-message').textContent = info.tracks.length ? 'Выбери озвучку. Сервер подготовит звук AAC, сохранив видео и позицию просмотра. При перемотке возможна короткая буферизация.' : 'В этом файле не найдены звуковые дорожки.';
+      } catch (error) { $('audio-message').textContent = error.message; }
+      finally { audioLoading = false; }
+    }
+  } showControls();
 });
 $('audio-close').addEventListener('click', closeAudio);
 $('audio-track').addEventListener('change', event => {
   try {
-    if (!selectAudioTrack(video.audioTracks, Number(event.target.value))) throw new Error();
+    if (audioMode === 'server') { if (event.target.value === '') return; selectServerAudio(Number(event.target.value)); }
+    else if (!selectAudioTrack(video.audioTracks, Number(event.target.value))) throw new Error();
     $('audio-message').textContent = 'Выбрано: ' + event.target.selectedOptions[0].textContent;
   } catch { $('audio-message').textContent = 'Браузер не смог переключить эту дорожку. Попробуй другой источник.'; }
   showControls();
 });
+video.addEventListener('emptied', () => { if (!video.getAttribute('src')) { audioMode = 'native'; $('audio-panel').hidden = true; $('audio-menu').setAttribute('aria-expanded', 'false'); } });
 for (const event of ['loadedmetadata', 'loadeddata', 'emptied']) video.addEventListener(event, refreshAudio);
 for (const event of ['addtrack', 'removetrack', 'change']) video.audioTracks?.addEventListener(event, refreshAudio);
 video.addEventListener('click', togglePlay);
@@ -119,12 +138,12 @@ $('mute-video').addEventListener('click', () => {
 });
 $('video-seek').addEventListener('input', event => {
   dragging = true; showControls();
-  const time = Number(event.target.value) / 1000 * (video.duration || 0);
-  $('video-time').textContent = `${formatTime(time)} / ${formatTime(video.duration)}`;
+  const time = Number(event.target.value) / 1000 * (playbackDuration() || 0);
+  $('video-time').textContent = `${formatTime(time)} / ${formatTime(playbackDuration())}`;
   event.target.style.setProperty('--played', `${Number(event.target.value) / 10}%`);
 });
 $('video-seek').addEventListener('change', event => {
-  if (Number.isFinite(video.duration)) video.currentTime = Number(event.target.value) / 1000 * video.duration;
+  if (Number.isFinite(playbackDuration())) seekPlayback(Number(event.target.value) / 1000 * playbackDuration());
   dragging = false; showControls();
 });
 for (const event of ['pointermove', 'pointerdown', 'focusin']) shell.addEventListener(event, showControls);

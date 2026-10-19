@@ -3,6 +3,7 @@ import collections
 import json
 import re
 import secrets
+import subprocess
 import threading
 import time
 import urllib.error
@@ -17,6 +18,21 @@ IP_ATTEMPTS = {}
 LOCK = threading.Lock()
 GATE = threading.BoundedSemaphore(12)
 MEDIA_GATE = threading.BoundedSemaphore(3)
+PROBE_GATE = threading.BoundedSemaphore(1)
+TRANSCODERS = {}
+
+def media_url(stream):
+    return 'http://127.0.0.1:8090/stream?' + urllib.parse.urlencode({'link': stream['hash'], 'index': stream['index'], 'play': ''})
+
+def audio_info(stream):
+    if not PROBE_GATE.acquire(blocking=False):
+        raise ValueError('Проверка дорожек уже выполняется')
+    try:
+        result = subprocess.run(['/usr/bin/ffprobe', '-v', 'error', '-rw_timeout', '15000000', '-probesize', '8000000', '-analyzeduration', '8000000', '-show_entries', 'format=duration:stream=index,codec_type,codec_name:stream_tags=language,title', '-of', 'json', media_url(stream)], capture_output=True, timeout=40, check=True)
+        info = json.loads(result.stdout)
+        return {'duration': float(info.get('format', {}).get('duration', 0)), 'tracks': [{'index': s['index'], 'language': s.get('tags', {}).get('language', ''), 'label': s.get('tags', {}).get('title', ''), 'codec': s.get('codec_name', '')} for s in info.get('streams', []) if s.get('codec_type') == 'audio']}
+    finally:
+        PROBE_GATE.release()
 
 
 def upstream(data):
@@ -153,6 +169,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(200, self.describe(session))
             if self.path == '/status':
                 return self.reply(200, self.describe(session))
+            if self.path == '/audio-info':
+                with LOCK:
+                    stream = STREAMS.get(data.get('stream', ''))
+                if not stream or stream['owner'] != token or stream['expires'] < time.monotonic():
+                    return self.reply(401, {'error': 'Ссылка просмотра истекла'})
+                info = stream.get('audio') or audio_info(stream)
+                stream['audio'] = info
+                return self.reply(200, info)
             if self.path == '/play':
                 if not session['hash'] or session['hash'] == 'pending':
                     return self.reply(409, {'error': 'Сначала загрузи раздачу в своём сеансе'})
@@ -173,6 +197,8 @@ class Handler(BaseHTTPRequestHandler):
                 torrent_hash = session['hash']
                 session['hash'] = None
                 with LOCK:
+                    process = TRANSCODERS.pop(token, None)
+                    if process: process.kill()
                     for key in list(STREAMS):
                         if STREAMS[key]['owner'] == token:
                             del STREAMS[key]
@@ -184,6 +210,8 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(400, {'error': 'Некорректный запрос'})
         except (urllib.error.URLError, TimeoutError):
             self.reply(503, {'error': 'Движок не ответил. Попробуй повторить запрос.'})
+        except (subprocess.SubprocessError, OSError):
+            self.reply(503, {'error': 'Не удалось прочитать звуковые дорожки. Дождись буферизации и повтори.'})
 
     def describe(self, session):
         if not session['hash'] or session['hash'] == 'pending':
@@ -193,11 +221,14 @@ class Handler(BaseHTTPRequestHandler):
                 'speed': result.get('download_speed', 0), 'peers': result.get('active_peers', 0)}
 
     def do_GET(self):
-        key = self.path.removeprefix('/watch/')
+        parts = self.path.removeprefix('/watch/').split('/')
+        key = parts[0]
         with LOCK:
             stream = STREAMS.get(key)
         if not self.path.startswith('/watch/') or not stream or stream['expires'] < time.monotonic():
             return self.reply(401, {'error': 'Ссылка просмотра истекла'})
+        if len(parts) > 1:
+            return self.serve_audio(stream, parts[1:])
         if not MEDIA_GATE.acquire(blocking=False):
             return self.reply(503, {'error': 'Слишком много потоков'})
         response = None
@@ -229,6 +260,41 @@ class Handler(BaseHTTPRequestHandler):
                 response.close()
             MEDIA_GATE.release()
 
+    def serve_audio(self, stream, parts):
+        if len(parts) != 3 or parts[0] != 'audio' or not re.fullmatch(r'\d{1,4}', parts[1]) or not re.fullmatch(r'\d{1,6}(?:\.\d{1,3})?', parts[2]):
+            return self.reply(400, {'error': 'Некорректная дорожка'})
+        info = stream.get('audio')
+        index, start = int(parts[1]), float(parts[2])
+        if not info or index not in [t['index'] for t in info['tracks']] or start > max(info['duration'], 0):
+            return self.reply(400, {'error': 'Дорожка не найдена'})
+        process = None
+        try:
+            with LOCK:
+                previous = TRANSCODERS.pop(stream['owner'], None)
+                if previous: previous.kill()
+                if TRANSCODERS:
+                    return self.reply(503, {'error': 'Обработка звука занята'})
+                process = subprocess.Popen(['/usr/bin/ffmpeg', '-nostdin', '-v', 'error', '-threads', '1', '-rw_timeout', '15000000', '-ss', str(start), '-i', media_url(stream), '-map', '0:v:0', '-map', '0:' + str(index), '-sn', '-dn', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-threads', '1', '-avoid_negative_ts', 'make_zero', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', '-frag_duration', '1000000', '-f', 'mp4', 'pipe:1'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                TRANSCODERS[stream['owner']] = process
+            self.connection.settimeout(30)
+            first = process.stdout.read(4096)
+            if not first:
+                return self.reply(503, {'error': 'Кодек файла не поддерживается'})
+            self.response_headers(200, 'video/mp4')
+            self.send_header('Connection', 'close'); self.end_headers()
+            self.close_connection = True
+            self.wfile.write(first)
+            while chunk := process.stdout.read(64 * 1024): self.wfile.write(chunk)
+        except (BrokenPipeError, ConnectionResetError, TimeoutError, OSError):
+            pass
+        finally:
+            if process:
+                process.kill() if process.poll() is None else None
+                process.wait(timeout=5)
+                process.stdout.close()
+                with LOCK:
+                    if TRANSCODERS.get(stream['owner']) is process: TRANSCODERS.pop(stream['owner'], None)
+
 
 def cleanup():
     while True:
@@ -239,6 +305,8 @@ def cleanup():
             for token in list(SESSIONS):
                 session = SESSIONS[token]
                 if session['expires'] < now or session['seen'] < now - 300:
+                    process = TRANSCODERS.pop(token, None)
+                    if process: process.kill()
                     if session['hash'] and session['hash'] != 'pending':
                         stale_hashes.append(session['hash'])
                     del SESSIONS[token]
