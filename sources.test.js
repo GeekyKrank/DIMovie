@@ -86,3 +86,10 @@ test('Movie matching excludes unrelated episodes, remakes and puts zero-seed sou
  assert.deepEqual(result,[rows[2],rows[1]]);
  assert.equal(rows[0].seeders,28);
 });
+
+test('IMDb results keep English and abbreviated aliases when TMDB original title is Japanese', () => {
+ const rows=[{title:'Ghost.in.the.Shell.1995.1080p.BluRay.x265',seeders:509},{title:'GitS.1995.BDRip.AVC',seeders:20},{title:'Koukaku Kidoutai 1995',seeders:12},{title:'Футурама / Futurama Сезон: 6 Ghost in the Machines',seeders:28}];
+ const result=matchMovieSources(rows,{title:'Призрак в доспехах',originalTitle:'攻殻機動隊',year:'1995'});
+ assert.equal(result.length,3);
+ for(const row of rows.slice(0,3))assert.ok(result.includes(row));
+});

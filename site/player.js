@@ -1,5 +1,5 @@
 import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback } from './transport.js?v=compatibility-2';
-import { searchSources, sortSources, matchMovieSources } from './sources.js?v=movie-match-1';
+import { searchSources, sortSources, matchMovieSources } from './sources.js?v=movie-match-2';
 import { setControlTitle } from './controls.js?v=compatibility-2';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
@@ -90,7 +90,7 @@ async function findSources() {
     const result = await searchSources(currentImdb, signal);
     if (signal.aborted) return;
     const matching = matchMovieSources(result.streams, currentMovie);
-    $('sources-status').textContent = matching.length ? '' : 'Подходящие раздачи этого фильма не найдены. Непохожие названия и другие годы скрыты.';
+    $('sources-status').textContent = matching.length ? '' : 'Подходящие раздачи этого фильма не найдены. Явно посторонние сериальные раздачи скрыты.';
     if (matching.length && matching.every(source => source.seeders === 0)) $('sources-status').textContent = 'Все найденные раздачи указаны с нулём раздающих. Доступность не подтверждена.';
     if (result.unavailable?.length) $('sources-status').textContent = result.streams.length ? 'Часть источников временно недоступна.' : 'Часть источников не ответила. Попробуй повторить поиск позже.';
     displayedSources = matching;

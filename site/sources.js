@@ -115,9 +115,11 @@ export function matchMovieSources(streams, movie = {}) {
     const release = `${source.title || source.name} ${source.filename || ''}`;
     if (/\b(?:season|saison)\s*\d|сезон\s*[:\d]|\bS\d{1,2}E\d{1,3}\b/i.test(release)) return false;
     const text = normalize(release), words = new Set(text.split(' '));
-    if (titles.length && !titles.some(title => text.includes(title)) && !tokens.some(list => list.length && list.filter(word => words.has(word)).length >= Math.max(1,Math.ceil(list.length*.75)))) return false;
+    // IMDb-mapped addons can use an English/romanized alias absent from TMDB.
+    // A missing text match is uncertainty, not evidence of the wrong film.
+    const titleMatches = titles.some(title => text.includes(title)) || tokens.some(list => list.length && list.filter(word => words.has(word)).length >= Math.max(1,Math.ceil(list.length*.75)));
     const years = release.slice(0,350).match(/\b(?:19|20)\d{2}\b/g) || [];
-    return !/^\d{4}$/.test(year) || !years.length || years.includes(year);
+    return !titleMatches || !/^\d{4}$/.test(year) || !years.length || years.includes(year);
   });
   return filtered.sort((a,b) => Number(a.seeders === 0)-Number(b.seeders === 0) || Number(Boolean(a.codecWarning))-Number(Boolean(b.codecWarning)) || Number(Boolean(b.russian))-Number(Boolean(a.russian)) || (b.seeders ?? -1)-(a.seeders ?? -1));
 }
