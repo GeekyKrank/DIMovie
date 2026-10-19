@@ -46,10 +46,14 @@ async function load() {
   $('catalog-tab').setAttribute('aria-pressed', String(!state.library)); $('library-tab').setAttribute('aria-pressed', String(state.library));
   $('categories').hidden = state.library || !!state.query;
   $('status').textContent = '';
+  $('status').classList.remove('library-empty');
   if (state.library) {
     const list = favorites.filter(m => m.title.toLocaleLowerCase('ru').includes(state.query.toLocaleLowerCase('ru')));
     $('grid').replaceChildren(...list.map(card));
-    if (!list.length) $('status').textContent = 'Здесь появятся сохранённые фильмы. Добавь их в избранное на странице фильма.';
+    if (!list.length) {
+      $('status').textContent = 'Здесь появятся сохранённые фильмы. Добавь их в избранное на странице фильма.';
+      $('status').classList.add('library-empty');
+    }
     return;
   }
   skeletons(); $('grid').setAttribute('aria-busy', 'true');

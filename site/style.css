@@ -41,6 +41,7 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 .header .chip{font-size:10px;padding:9px 8px}.header-left{gap:22px}.header nav{gap:18px}.nav{font-size:12px}
 
 /* Fullscreen controls slide into view on pointer activity without layout work. */
+.status.library-empty{display:grid;place-items:center;min-height:78svh;max-width:660px;margin:0 auto;padding:110px 24px 60px;text-align:center;color:#c7c7ce;font-size:clamp(14px,1.2vw,18px);line-height:1.9;text-wrap:balance}
 @media (prefers-reduced-motion:no-preference){
   .cinema-player:fullscreen .cinema-controls,
   .cinema-player:fullscreen .cinema-top{transition:opacity .22s ease,transform .28s cubic-bezier(.2,.7,.2,1);transform:translateY(0)}
