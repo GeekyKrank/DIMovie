@@ -1,4 +1,4 @@
-import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback, selectedServerAudio, originalAudio } from './transport.js?v=compatibility-1';
+import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback, selectedServerAudio, originalAudio } from './transport.js?v=compatibility-2';
 import { audioLabel, selectAudioTrack } from './audio.js?v=audio-menu-1';
 const $ = id => document.getElementById(id);
 const video = $('embedded-video'), shell = $('video-shell');

@@ -118,7 +118,7 @@ def audio_info(stream):
     try:
         result = subprocess.run(['/usr/bin/ffprobe', '-v', 'error', '-rw_timeout', '15000000', '-protocol_whitelist', 'http,tcp', '-format_whitelist', 'mov,matroska,webm,avi,mpegts,mp3,ogg', '-probesize', '8000000', '-analyzeduration', '8000000', '-show_entries', 'format=duration:stream=index,codec_type,codec_name:stream_tags=language,title', '-of', 'json', media_url(stream)], capture_output=True, timeout=40, check=True)
         info = json.loads(result.stdout)
-        return {'duration': float(info.get('format', {}).get('duration', 0)), 'tracks': [{'index': s['index'], 'language': s.get('tags', {}).get('language', ''), 'label': s.get('tags', {}).get('title', ''), 'codec': s.get('codec_name', '')} for s in info.get('streams', []) if s.get('codec_type') == 'audio']}
+        return {'duration': float(info.get('format', {}).get('duration', 0)), 'video_codecs': [s.get('codec_name', '') for s in info.get('streams', []) if s.get('codec_type') == 'video'], 'tracks': [{'index': s['index'], 'language': s.get('tags', {}).get('language', ''), 'label': s.get('tags', {}).get('title', ''), 'codec': s.get('codec_name', '')} for s in info.get('streams', []) if s.get('codec_type') == 'audio']}
     finally:
         PROBE_GATE.release()
 
@@ -380,6 +380,8 @@ class Handler(BaseHTTPRequestHandler):
         index, start = int(parts[1]), float(parts[2])
         if not info or index not in [t['index'] for t in info['tracks']] or start > max(info['duration'], 0):
             return self.reply(400, {'error': 'Дорожка не найдена'})
+        if any(codec in {'mpeg4', 'msmpeg4v3', 'mpeg2video', 'mpeg1video', 'wmv3', 'vc1', 'h263'} for codec in info.get('video_codecs', [])):
+            return self.reply(415, {'error': 'Видеокодек не поддерживается браузером. Выбери источник H.264/AAC.'})
         process = None
         try:
             with PROCESS_LOCK:

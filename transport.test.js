@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 test('Compatibility fallback uses one audio job, preserves raw network errors and ignores stale sources', async () => {
   const previous=globalThis.document;
-  const video={currentTime:12,duration:200,paused:true,src:'',load(){},play:async()=>{},addEventListener(){}};
+  const video={currentTime:12,duration:200,paused:true,src:'',load(){},pause(){this.paused=true;},play:async()=>{},addEventListener(){}};
   const status={textContent:''};
   globalThis.document={getElementById:id=>id==='embedded-video'?video:status};
   try {
@@ -13,6 +13,10 @@ test('Compatibility fallback uses one audio job, preserves raw network errors an
     assert.equal(await transport.recoverCompatiblePlayback(4),true);
     assert.match(video.src,/\/audio\/2\/12\.000$/);assert.equal(probes,1);
     assert.equal(await transport.recoverCompatiblePlayback(3),false);assert.equal(probes,1);
+    transport.configureTransport('https://example.test/watch/xvid',async()=>({duration:200,video_codecs:['mpeg4'],tracks:[{index:1}]}));
+    video.src='https://example.test/watch/xvid';
+    await assert.rejects(transport.recoverCompatiblePlayback(4),/MPEG4/);
+    assert.equal(video.src,'https://example.test/watch/xvid');
     let resolve;
     transport.configureTransport('https://example.test/watch/b',()=>new Promise(r=>{resolve=r;}));
     const pending=transport.recoverCompatiblePlayback(4);

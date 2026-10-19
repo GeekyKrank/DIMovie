@@ -143,6 +143,23 @@ class BridgeTest(unittest.TestCase):
         for _ in range(4):
             self.assertEqual(self.request('GET',path+'/audio/999/0')[0],400)
 
+    def test_incompatible_video_cannot_start_audio_only_remux(self):
+        token=self.login()
+        self.request('POST','/torrent',{'link':'magnet:?xt=urn:btih:'+'a'*40},token)
+        path=self.request('POST','/play',{'index':2},token)[1]['path']
+        bridge.STREAMS[path.split('/')[-1]]['audio']={'duration':200,'video_codecs':['mpeg4'],'tracks':[{'index':1}]}
+        with patch.object(bridge.subprocess,'Popen') as spawn:
+            self.assertEqual(self.request('GET',path+'/audio/1/0')[0],415)
+            spawn.assert_not_called()
+        self.assertEqual(bridge.REGISTRY.torrents['a'*40]['readers'],0)
+
+    def test_probe_reports_video_codec_alongside_audio_tracks(self):
+        output={'format':{'duration':'200'},'streams':[{'index':0,'codec_type':'video','codec_name':'mpeg4'},{'index':1,'codec_type':'audio','codec_name':'ac3'}]}
+        with patch.object(bridge.subprocess,'run',return_value=MagicMock(stdout=json.dumps(output))):
+            result=bridge.audio_info({'hash':'a'*40,'index':2})
+        self.assertEqual(result['video_codecs'],['mpeg4'])
+        self.assertEqual(result['tracks'][0]['codec'],'ac3')
+
     def test_malformed_json_object_and_rate_limit(self):
         self.assertEqual(self.request('POST','/session',['unexpected'])[0],400)
         token=self.login()

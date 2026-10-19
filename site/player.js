@@ -1,6 +1,6 @@
-import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback } from './transport.js?v=compatibility-1';
+import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback } from './transport.js?v=compatibility-2';
 import { searchSources, sortSources } from './sources.js?v=source-sort-1';
-import { setControlTitle } from './controls.js?v=compatibility-1';
+import { setControlTitle } from './controls.js?v=compatibility-2';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let token = '', active = false, pollTimer, operation;
@@ -161,18 +161,28 @@ $('start-video').addEventListener('click', startVideo);
 video.addEventListener('playing', () => { $('center-play').hidden = true; message('Воспроизведение'); });
 video.addEventListener('pause', () => { $('center-play').hidden = false; });
 video.addEventListener('waiting', () => message('Накапливаем буфер. Скорость зависит от доступных пиров.'));
-video.addEventListener('error', async () => {
+async function handlePlaybackFailure(code = video.error?.code) {
   const failedSource = video.getAttribute('src');
-  const code = video.error?.code;
   if (!failedSource) return;
   message('Проверяем совместимость файла и готовим MP4 со звуком AAC…');
   try {
     const recovered = await recoverCompatiblePlayback(code);
-    if (!recovered && failedSource === video.getAttribute('src')) message(code === 2
+    if (!recovered && failedSource === video.getAttribute('src')) {
+      if ([3,4].includes(code)) video.pause();
+      message(code === 2
       ? 'Ошибка передачи видео. Проверь скорость раздачи или выбери другой источник.'
       : 'Видеокодек не поддерживается браузером. Переупаковка не исправляет Xvid/DivX и другие несовместимые кодеки. Выбери H.264/AAC.');
+    }
   } catch (error) {
     if (failedSource === video.getAttribute('src') || video.error) message('Не удалось подготовить совместимое видео. ' + error.message + ' Попробуй источник H.264/AAC.');
+  }
+}
+video.addEventListener('error', () => handlePlaybackFailure());
+let checkingMissingVideo = false;
+video.addEventListener('timeupdate', () => {
+  if (!checkingMissingVideo && !video.paused && video.readyState >= 2 && video.currentTime > 2 && video.videoWidth === 0) {
+    checkingMissingVideo = true;
+    handlePlaybackFailure(4).finally(() => { checkingMissingVideo = false; });
   }
 });
 $('rewind-video').addEventListener('click', () => { seekPlayback(playbackTime() - 10); });

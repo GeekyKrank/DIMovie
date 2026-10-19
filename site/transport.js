@@ -28,6 +28,8 @@ function reloadAt(time, resume) {
   if (resume) video.play().catch(() => { document.getElementById('player-status').textContent = 'Нажми ▶ для продолжения с выбранной озвучкой.'; });
 }
 export function selectServerAudio(index) {
+  const incompatible = info?.video_codecs?.find(codec => ['mpeg4','msmpeg4v3','mpeg2video','mpeg1video','wmv3','vc1','h263'].includes(codec));
+  if (incompatible) { video.pause(); throw new Error(`Видео ${incompatible.toUpperCase()} не поддерживается браузером. Нужна другая раздача H.264/AAC или внешний плеер.`); }
   if (!info?.tracks.some(t => t.index === index)) throw new Error('Дорожка недоступна');
   const time = playbackTime(), resume = !video.paused;
   selected = index; reloadAt(time, resume);
