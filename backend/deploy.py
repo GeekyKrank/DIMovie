@@ -4,10 +4,12 @@ import subprocess
 
 run = lambda *args: subprocess.run(args, check=True)
 stage = Path(__file__).resolve().parent
-run('apt-get', 'install', '-y', '--no-install-recommends', 'ffmpeg')
 assert not Path('/etc/nginx/sites-available/donbot').exists(), 'Wrong host'
+run('apt-get', 'install', '-y', '--no-install-recommends', 'ffmpeg')
 run('install', '-d', '-m', '755', '/opt/dimovie-player')
 run('install', '-m', '644', str(stage / 'player_bridge.py'), '/opt/dimovie-player/player_bridge.py')
+for module in ('lifecycle.py', 'monitor.py'):
+    run('install', '-m', '644', str(stage / module), '/opt/dimovie-player/' + module)
 run('install', '-m', '644', str(stage / 'dimovie-player.service'), '/etc/systemd/system/dimovie-player.service')
 site = Path('/etc/nginx/sites-available/moviesplayer')
 text = site.read_text()
@@ -29,6 +31,7 @@ IPAddressDeny=fe80::/10
 ''')
 run('nginx', '-t')
 run('systemctl', 'daemon-reload')
-run('systemctl', 'restart', 'moviesplayer-torrserver', 'dimovie-player')
+# Do not restart the shared engine (or discard its cache) for a bridge update.
+run('systemctl', 'restart', 'dimovie-player')
 run('systemctl', 'reload', 'nginx')
 print('Guest player installed; administration endpoint remains password protected.')
