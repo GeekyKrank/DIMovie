@@ -6,14 +6,14 @@ forwarding; FFmpeg copies video and encodes audio only when requested.
 
 ## Deployed bounds
 
-- `Registry(max_viewers=1, max_torrents=1)`: intentionally unchanged capacity.
+- `Registry(max_viewers=5, max_torrents=1)`: five viewers of one shared torrent after the authorised bounded check.
 - 64 MiB RAM piece cache in the engine, 448 MiB engine cgroup maximum.
 - Idle managed torrents are retained up to 60 seconds for immediate reuse and
   removed by the 30-second sweeper. Actual engine expiry can also discard cache.
 - Idle OTHER torrents may be evicted immediately to admit a different movie.
 - Active owners and open readers prevent eviction. Stop revokes that owner's
   links; another owner's readers are independent.
-- Three media requests TOTAL across raw and audio paths; twelve bounded HTTP
+- Six media requests TOTAL across raw and audio paths; sixteen bounded HTTP
   handlers leave room for control traffic during normal streaming. Unparsed or
   slow requests have a 30-second socket timeout; this is not a general DDoS shield.
 - One FFmpeg job and one ffprobe. Old audio jobs are terminated and reaped before
@@ -23,7 +23,7 @@ forwarding; FFmpeg copies video and encodes audio only when requested.
   responses use 409/429/503, with Retry-After for 429/503.
 
 The registry permits shared-hash viewers when explicitly configured in tests.
-Production capacity MUST NOT be raised merely because these tests pass.
+Production capacity was raised only after the user-authorised real HTTPS check; further increases require new measurements.
 
 ## Lifecycle
 
@@ -92,3 +92,16 @@ Do not assume Oracle permits every P2P use: consult the agreement applicable to
 the tenancy and current service policies. This code does not establish rights
 to redistribute films. Keep content/use authorised. Host/OCI peer port changes
 are separate operational changes and are not made by this patch.
+
+## Authorised five-viewer check (2026-10-19)
+
+One 15-second direct stream, then five 20-second direct streams at a shared
+position, then five at distinct byte offsets. All used the openly licensed
+Big Buck Bunny torrent, one engine hash, real HTTPS to the developer computer,
+and a paced target of 4 Mbit/s each. All phases passed. Observed minimum
+available RAM: 377.65 MiB; engine cgroup peak: 131.23 MiB; bridge peak: 25.84 MiB.
+Combined engine/bridge CPU averaged 0.36 CPU and peaked at 0.76 CPU over
+two-second samples (35 samples). This is a short app-level check, not a sustained
+capacity guarantee. Five distinct torrents, higher bitrates, five AAC encoders,
+and long sessions have NOT been validated. Production unique-torrent and
+FFmpeg limits remain one.

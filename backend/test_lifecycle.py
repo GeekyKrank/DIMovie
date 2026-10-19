@@ -104,3 +104,14 @@ class RegistryTest(unittest.TestCase):
         self.assertFalse(self.registry.expire('one'))
         self.assertTrue(self.registry.alive(reader))
         self.registry.release(reader)
+
+    def test_five_viewers_share_engine_and_sixth_is_rejected(self):
+        self.registry.max_viewers=5
+        for i in range(6):self.sessions[str(i)]=dict(hash=None,expires=9000,seen=self.now)
+        for i in range(5):self.registry.attach(str(i),self.link)
+        self.assertEqual(sum(c['action']=='add' for c in self.calls),1)
+        with self.assertRaises(module.Busy):self.registry.attach('5',self.link)
+        for i in range(4):self.registry.detach(str(i))
+        self.registry.reap();self.assertFalse(any(c['action']=='rem' for c in self.calls))
+        self.registry.detach('4');self.now+=61;self.registry.reap()
+        self.assertEqual(sum(c['action']=='rem' for c in self.calls),1)

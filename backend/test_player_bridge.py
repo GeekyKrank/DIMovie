@@ -28,6 +28,7 @@ class BridgeTest(unittest.TestCase):
         bridge.SESSIONS.clear(); bridge.STREAMS.clear(); bridge.ATTEMPTS.clear(); bridge.IP_ATTEMPTS.clear()
         bridge.REGISTRY.torrents.clear()
         bridge.REGISTRY.grace = 0
+        bridge.REGISTRY.max_viewers = 1
         self.calls = []
         def fake_upstream(data):
             self.calls.append(data)

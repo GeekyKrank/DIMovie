@@ -19,8 +19,8 @@ ATTEMPTS = collections.deque(maxlen=128)
 IP_ATTEMPTS = {}
 LOCK = threading.RLock()
 PROCESS_LOCK = threading.Lock()
-GATE = threading.BoundedSemaphore(12)
-MEDIA_GATE = threading.BoundedSemaphore(3)
+GATE = threading.BoundedSemaphore(16)
+MEDIA_GATE = threading.BoundedSemaphore(6)
 PROBE_GATE = threading.BoundedSemaphore(1)
 TRANSCODERS = {}
 _spec = importlib.util.spec_from_file_location('dimovie_lifecycle', Path(__file__).with_name('lifecycle.py'))
@@ -30,8 +30,8 @@ _spec_monitor = importlib.util.spec_from_file_location('dimovie_monitor', Path(_
 _monitor = importlib.util.module_from_spec(_spec_monitor)
 _spec_monitor.loader.exec_module(_monitor)
 MONITOR = _monitor.Monitor()
-# A higher value is deliberately NOT deployed until production resource tests.
-REGISTRY = _lifecycle.Registry(SESSIONS, STREAMS, lambda data: upstream(data), max_viewers=1, max_torrents=1)
+# Candidate capacity: validated by an explicitly authorised bounded live check.
+REGISTRY = _lifecycle.Registry(SESSIONS, STREAMS, lambda data: upstream(data), max_viewers=5, max_torrents=1)
 LOCK = REGISTRY.lock
 
 
