@@ -1,5 +1,5 @@
 import { searchSources } from './sources.js?v=source-search-1';
-import { setControlTitle } from './controls.js?v=wide-catalog-1';
+import { setControlTitle } from './controls.js?v=overlay-catalog-1';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let token = '', active = false, pollTimer, operation;
