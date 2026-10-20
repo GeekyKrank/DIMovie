@@ -1,7 +1,9 @@
 import { normalizeNick, profileLibrary } from './profile.js?v=profiles-1';
 import { animeCatalog, animeRelease, animeImage, animeCard, playableEpisodes, findAnimeMovie } from './anime.js?v=anime-1';
 import { api, posterUrl } from './api.js';
-import { openPlayer, stopPlayer, setupAnimePlayer, startAnimeStream } from './player.js?v=anime-bar-1';
+import { openPlayer, stopPlayer, setupAnimePlayer, startAnimeStream } from './player.js?v=resume-2';
+import {historyItems, historyFor, saveHistory} from './history.js?v=1';
+import {playbackTime, playbackDuration} from './transport.js?v=resume-2';
 const $ = id => document.getElementById(id);
 const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false, anime: false };
 let controller, detailController, searchTimer, selectedMovie = null, catalogueScroll = 0;
@@ -37,6 +39,8 @@ function card(movie) {
   node.setAttribute('aria-label', movie.title);
   const poster = el('div', 'poster'); poster.append(movie.animeId ? animePoster(movie.poster_path, '') : image(movie.poster_path, 'w342'));
   if (movie.vote_average > 0) poster.append(el('span', 'rating', `★ ${movie.vote_average.toFixed(1)}`));
+  const progress = historyFor(movie);
+  if (progress) poster.append(el('span', 'rating', '▶ ' + Math.floor(progress.position / 60) + ':' + String(Math.floor(progress.position % 60)).padStart(2, '0')));
   node.append(poster, el('h3', '', movie.title), el('span', 'year', (movie.release_date || '').slice(0, 4) || 'Дата не указана'));
   node.addEventListener('click', () => openMovie(movie)); return node;
 }
@@ -67,10 +71,11 @@ async function load() {
       try {const data=await profileLibrary(nick,'get',{},signal);if(signal.aborted || nick!==profileNick)return;if(revision===libraryRevision)favorites=data.movies;$('status').textContent='';}
       catch(error){if(signal.aborted)return;$('status').textContent='Не удалось обновить библиотеку. '+error.message;}
     }
-    const list = favorites.filter(m => m.title.toLocaleLowerCase('ru').includes(state.query.toLocaleLowerCase('ru')));
+    const merged = [...historyItems(), ...favorites.filter(movie => !historyFor(movie))];
+    const list = merged.filter(m => m.title.toLocaleLowerCase('ru').includes(state.query.toLocaleLowerCase('ru')));
     $('grid').replaceChildren(...list.map(card));
     if (!list.length) {
-      $('status').textContent = 'Здесь появятся сохранённые фильмы. Добавь их в избранное на странице фильма.';
+      $('status').textContent = 'Здесь появятся сохранённые фильмы и история просмотра.';
       $('status').classList.add('library-empty');
     }
     return;
@@ -90,9 +95,10 @@ async function load() {
 }
 async function openMovie(movie) {
   if (movie.animeId) return openAnimeMovie(movie);
-  if (selectedMovie?.id !== movie.id) await stopPlayer();
+  if (selectedMovie?.id !== movie.id) { checkpoint(); await stopPlayer(); }
   catalogueScroll = window.scrollY;
   selectedMovie = movie;
+  trackMovie(movie);
   $('catalog-page').hidden = true; $('watch-page').hidden = false;
   window.scrollTo({ top: 0, behavior: 'instant' });
   detailController?.abort(); detailController = new AbortController();
@@ -123,6 +129,7 @@ async function openMovie(movie) {
   } catch (error) { if (!signal.aborted) content.replaceChildren(el('p', 'detail-body', error.message)); }
 }
 async function showCatalogue() {
+  checkpoint();
   detailController?.abort();
   $('watch-page').hidden = true; $('catalog-page').hidden = false;
   document.title = 'DIMovie — фильмы';
@@ -150,10 +157,24 @@ function animePoster(path, className) {
   const src=animeImage(path);if (!src)return el('div',className);
   const img=el('img',className);img.src=src;img.alt='';img.loading='lazy';img.decoding='async';return img;
 }
+let historyMovie=null, lastSaved=0, restoring=false, playingEpisode='';
+function checkpoint() {
+  if (!historyMovie || restoring || !$('embedded-video').getAttribute('src')) return;
+  saveHistory(historyMovie, playbackTime(), playbackDuration(), playingEpisode);
+}
+const historyVideo=$('embedded-video');
+historyVideo.addEventListener('timeupdate',()=>{if(Date.now()-lastSaved>5000){checkpoint();lastSaved=Date.now();}});
+for(const name of ['pause','ended'])historyVideo.addEventListener(name,checkpoint);
+window.addEventListener('pagehide',checkpoint);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)checkpoint();});
+historyVideo.addEventListener('loadedmetadata',()=>{restoring=false;});
+historyVideo.addEventListener('resume-request',()=>{const saved=historyFor(historyMovie);if(saved?.position){restoring=true;historyVideo.addEventListener('loadedmetadata',()=>{historyVideo.currentTime=Math.min(saved.position,Number.isFinite(historyVideo.duration)?Math.max(0,historyVideo.duration-.1):saved.position);},{once:true});}});
+function trackMovie(movie) {checkpoint();historyMovie=movie;}
 let animeEpisodes=[];
 async function openAnimeMovie(movie) {
   detailController?.abort();detailController=new AbortController();const signal=detailController.signal;
-  await stopPlayer();if(signal.aborted)return;
+  checkpoint();await stopPlayer();if(signal.aborted)return;
+  historyMovie=movie;
   catalogueScroll=window.scrollY;selectedMovie=null;
   $('catalog-page').hidden=true;$('watch-page').hidden=false;window.scrollTo({top:0,behavior:'instant'});
   const content=$('movie-content');content.replaceChildren(el('p','detail-body','Загружаем аниме…'));
@@ -170,6 +191,7 @@ async function openAnimeMovie(movie) {
     animeEpisodes=playableEpisodes(release);
     $('anime-note').textContent=animeEpisodes.length ? '' : release.is_blocked_by_geo || release.is_blocked_by_copyrights ? 'Провайдер ограничил доступ к этому аниме.' : 'В этом релизе пока нет доступных видеосерий.';
     for (const episode of animeEpisodes) {const option=el('option','',`${release.type?.value==='MOVIE'?'Фильм':'Серия '+episode.ordinal}${episode.name?' · '+episode.name:''}`);option.value=String(episode.ordinal);$('anime-episode').append(option);}
+    const saved=historyFor(movie);if(saved?.episode && [...$('anime-episode').options].some(option=>option.value===saved.episode))$('anime-episode').value=saved.episode;
     updateAnimeQuality();$('anime-episode').disabled=!animeEpisodes.length;$('anime-quality').disabled=!animeEpisodes.length;
   } catch(error) {if(!signal.aborted)$('anime-note').textContent=error.message;}
 }
@@ -184,7 +206,8 @@ async function playSelectedAnime() {
   const episode=animeEpisodes.find(episode=>String(episode.ordinal)===$('anime-episode').value);
   const quality=episode?.qualities.find(quality=>String(quality.quality)===$('anime-quality').value);
   if(!quality)return;
-  try {await startAnimeStream(quality.url);$('video-shell').scrollIntoView({block:'center'});}catch(error){$('player-status').textContent=error.message;}
+  checkpoint();playingEpisode=$('anime-episode').value;restoring=true;
+  try {await startAnimeStream(quality.url, historyFor(historyMovie)?.episode === $('anime-episode').value ? historyFor(historyMovie).position : 0);$('video-shell').scrollIntoView({block:'center'});}catch(error){restoring=false;$('player-status').textContent=error.message;}
 }
 $('video-shell').addEventListener('anime-play',playSelectedAnime);
 

@@ -1,4 +1,4 @@
-import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback, selectedServerAudio, originalAudio } from './transport.js?v=anime-1';
+import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback, selectedServerAudio, originalAudio } from './transport.js?v=resume-2';
 import { audioLabel, selectAudioTrack } from './audio.js?v=audio-menu-1';
 const $ = id => document.getElementById(id);
 const video = $('embedded-video'), shell = $('video-shell');
@@ -148,9 +148,10 @@ $('video-seek').addEventListener('change', event => {
   dragging = false; showControls();
 });
 for (const event of ['pointermove', 'pointerdown', 'focusin']) shell.addEventListener(event, showControls);
-shell.addEventListener('keydown', event => {
+document.addEventListener('keydown', event => {
+  if ($('watch-page').hidden || !video.getAttribute('src') || event.target.isContentEditable) return;
   if (event.key === 'Escape' && !$('audio-panel').hidden) { closeAudio(); $('audio-menu').focus(); event.preventDefault(); return; }
-  if (['INPUT', 'SELECT'].includes(event.target.tagName) || event.altKey || event.ctrlKey || event.metaKey) return;
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName) || event.altKey || event.ctrlKey || event.metaKey) return;
   if (event.key === ' ' && event.target.tagName === 'BUTTON') return;
   const key = event.key.toLowerCase();
   if (key === ' ' || key === 'k') togglePlay();

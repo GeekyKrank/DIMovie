@@ -1,7 +1,7 @@
-import { playHls, stopHls } from './hls-player.js?v=anime-bar-1';
-import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback } from './transport.js?v=anime-1';
+import { playHls, stopHls } from './hls-player.js?v=resume-2';
+import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback } from './transport.js?v=resume-2';
 import { searchSources, sortSources, matchMovieSources } from './sources.js?v=movie-match-2';
-import { setControlTitle } from './controls.js?v=anime-1';
+import { setControlTitle } from './controls.js?v=resume-2';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let directMode = false;
@@ -158,6 +158,7 @@ async function startVideo() {
   try {
     const result = await call('/play', { index: Number($('video-file').value) });
     configureTransport(BASE + result.path, signal => call('/audio-info', {stream:result.path.split('/').pop()}, signal));
+    video.dispatchEvent(new Event('resume-request'));
     video.src = BASE + result.path; video.load();
     $('video-hint').hidden = true; $('player-setup').open = false;
     $('video-shell').scrollIntoView({ block: 'center' });

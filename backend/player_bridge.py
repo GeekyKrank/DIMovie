@@ -394,7 +394,7 @@ class Handler(BaseHTTPRequestHandler):
                 stop_process(previous)
                 if TRANSCODERS:
                     return self.reply(503, {'error': 'Обработка звука занята'})
-                process = subprocess.Popen(['/usr/bin/ffmpeg', '-nostdin', '-v', 'error', '-threads', '1', '-rw_timeout', '15000000', '-protocol_whitelist', 'http,tcp', '-format_whitelist', 'mov,matroska,webm,avi,mpegts,mp3,ogg', '-ss', str(start), '-i', media_url(stream), '-map', '0:v:0', '-map', '0:' + str(index), '-sn', '-dn', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-threads', '1', '-avoid_negative_ts', 'make_zero', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', '-frag_duration', '1000000', '-f', 'mp4', 'pipe:1'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                process = subprocess.Popen(['/usr/bin/ffmpeg', '-nostdin', '-v', 'error', '-threads', '1', '-rw_timeout', '15000000', '-protocol_whitelist', 'http,tcp', '-format_whitelist', 'mov,matroska,webm,avi,mpegts,mp3,ogg', '-ss', str(start), '-noaccurate_seek', '-i', media_url(stream), '-map', '0:v:0', '-map', '0:' + str(index), '-sn', '-dn', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-threads', '1', '-avoid_negative_ts', 'make_zero', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', '-frag_duration', '1000000', '-f', 'mp4', 'pipe:1'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 TRANSCODERS[stream['owner']] = process
                 process._dimovie_stream = stream
             self.connection.settimeout(30)

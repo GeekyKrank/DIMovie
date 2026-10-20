@@ -1,17 +1,26 @@
 const video = document.getElementById('embedded-video');
 let source = '', loader, info, offset = 0, selected = null, pending, compatibilityAttempted = false;
+let pendingPosition = null, metadataListener;
+function awaitPosition(time, apply) {
+  if (metadataListener) video.removeEventListener('loadedmetadata', metadataListener);
+  pendingPosition = time;
+  metadataListener = () => { pendingPosition = null; metadataListener = null; apply?.(); };
+  video.addEventListener('loadedmetadata', metadataListener, {once:true});
+}
 export function configureTransport(url = '', loadInfo) {
   pending?.abort(); pending = null;
+  if (metadataListener) video.removeEventListener('loadedmetadata', metadataListener);
+  metadataListener = null; pendingPosition = null;
   source = url; loader = loadInfo; info = null; offset = 0; selected = null; compatibilityAttempted = false;
 }
 export function playbackDuration() { return selected !== null ? info?.duration || 0 : video.duration; }
-export function playbackTime() { return offset + video.currentTime; }
+export function playbackTime() { return pendingPosition ?? offset + video.currentTime; }
 export function selectedServerAudio() { return selected; }
 export function originalAudio() {
   const time = playbackTime(), resume = !video.paused;
   selected = null; offset = 0;
+  awaitPosition(time, () => { video.currentTime = time; if (resume) video.play().catch(() => {}); });
   video.src = source; video.load();
-  video.addEventListener('loadedmetadata', () => { video.currentTime = time; if (resume) video.play().catch(() => {}); }, {once:true});
 }
 export async function serverAudioTracks() {
   if (!source) throw new Error('Сначала запусти фильм.');
@@ -24,6 +33,7 @@ export async function serverAudioTracks() {
 }
 function reloadAt(time, resume) {
   offset = Math.max(0, Math.min(time, Math.max(0, (info?.duration || time + 1) - .1)));
+  awaitPosition(offset);
   video.src = `${source}/audio/${selected}/${offset.toFixed(3)}`;
   video.load();
   if (resume) video.play().catch(() => { document.getElementById('player-status').textContent = 'Нажми ▶ для продолжения с выбранной озвучкой.'; });

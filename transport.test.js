@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 test('Compatibility fallback uses one audio job, preserves raw network errors and ignores stale sources', async () => {
   const previous=globalThis.document;
-  const video={currentTime:12,duration:200,paused:true,src:'',load(){},pause(){this.paused=true;},play:async()=>{},addEventListener(){}};
+  const video={currentTime:12,duration:200,paused:true,src:'',load(){},pause(){this.paused=true;},play:async()=>{},addEventListener(){},removeEventListener(){}};
   const status={textContent:''};
   globalThis.document={getElementById:id=>id==='embedded-video'?video:status};
   try {
@@ -25,5 +25,30 @@ test('Compatibility fallback uses one audio job, preserves raw network errors an
     transport.configureTransport('https://example.test/watch/c',async()=>{throw new Error('занято');});
     await assert.rejects(transport.recoverCompatiblePlayback(4),/занято/);
     assert.equal(await transport.recoverCompatiblePlayback(4),false);
+  } finally {globalThis.document=previous;}
+});
+
+test('Repeated audio switches retain movie time while the previous media is still unloading', async () => {
+  const previous=globalThis.document, listeners=new Map();
+  const video={currentTime:40,duration:200,paused:false,src:'',load(){},play:async()=>{},
+    addEventListener(name,fn){listeners.set(name,fn);},removeEventListener(name){listeners.delete(name);}};
+  globalThis.document={getElementById:()=>video};
+  try {
+    const transport=await import('./site/transport.js?switch-test');
+    transport.configureTransport('https://example.test/video',async()=>({duration:200,tracks:[{index:1},{index:2}]}));
+    await transport.serverAudioTracks();
+    transport.selectServerAudio(1);
+    assert.equal(transport.playbackTime(),40);
+    transport.selectServerAudio(2);
+    assert.match(video.src,/\/audio\/2\/40\.000$/);
+    video.currentTime=0;listeners.get('loadedmetadata')();
+    video.currentTime=3;
+    assert.equal(transport.playbackTime(),43);
+    transport.selectServerAudio(1);
+    assert.match(video.src,/\/audio\/1\/43\.000$/);
+    transport.selectServerAudio(2);
+    assert.match(video.src,/\/audio\/2\/43\.000$/);
+    transport.configureTransport();
+    assert.equal(listeners.has('loadedmetadata'),false);
   } finally {globalThis.document=previous;}
 });
