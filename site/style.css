@@ -146,3 +146,8 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 .pagination>button:disabled::after{opacity:.35;transition:none}
 
 .footer-credit{display:block;margin-top:16px;text-align:right;color:#888;font-size:12px}
+
+/* Library cards follow the header in normal document flow. */
+body:has(#library-tab[aria-pressed="true"]) .header{position:relative;inset:auto}
+body:has(#library-tab[aria-pressed="true"]) main{padding-top:28px}
+@media(max-width:900px){body:has(#library-tab[aria-pressed="true"]) main{padding-top:24px}}
