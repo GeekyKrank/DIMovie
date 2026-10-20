@@ -107,12 +107,13 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 .header :is(.nav,.chip):active{transform:perspective(500px) rotateX(25deg) scale(.975);box-shadow:inset 0 3px 2px #0003,inset 0 -2px 2px #fff8,0 3px 0 #ffffff75,0 5px 5px #0006}
 .header :is(.nav,.chip):active::before{background-position:50% 15%;--glass-light-angle:-15deg}
 .header :is(.nav,.chip):active::after{--glass-rim-angle:-75deg}
-@media(prefers-reduced-motion:no-preference){
+/* Header hover motion is explicitly enabled for the requested glass interaction,
+   including browsers that advertise reduced motion by default. */
+@media(hover:hover){
   .header :is(.nav,.chip){transition:transform .4s cubic-bezier(.25,1,.5,1),border-color .4s ease,color .4s ease,box-shadow .4s ease,backdrop-filter .4s ease,-webkit-backdrop-filter .4s ease,opacity .18s ease}
   .header :is(.nav,.chip)::before{transition:background-position .5s cubic-bezier(.25,1,.5,1),--glass-light-angle .5s ease,opacity .4s ease}
   .header :is(.nav,.chip)::after{transition:--glass-rim-angle .5s ease}
 }
-@media(prefers-reduced-motion:reduce){.header :is(.nav,.chip):is(:hover,:active){transform:none}}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.header :is(.nav,.chip){background-color:#242429e6}}
 @media(max-width:480px){.header .nav{padding:8px}.header nav{gap:5px}}
 #account-dialog{width:min(500px,calc(100% - 28px))}
