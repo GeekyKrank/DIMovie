@@ -69,7 +69,7 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
    The small button surfaces animate on hover; no animation runs while idle. */
 @property --glass-rim-angle{syntax:"<angle>";inherits:false;initial-value:-75deg}
 @property --glass-light-angle{syntax:"<angle>";inherits:false;initial-value:-45deg}
-:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button){
+:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button){
   position:relative;isolation:isolate;overflow:hidden;border-radius:999px;
   border:1px solid #ffffff30;background:linear-gradient(125deg,#ffffff24,#ffffff08 45%,#ffffff18);
   color:#dedee4;text-shadow:0 1px 3px #000c;
@@ -81,12 +81,12 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 .header .brand,.header :is(.nav,.chip){opacity:.72}
 .header:hover :is(.brand,.nav,.chip),.header:has(:focus-visible) :is(.brand,.nav,.chip){opacity:1}
 @media(hover:none){.header :is(.brand,.nav,.chip){opacity:1}}
-:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button)::before{
+:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button)::before{
   content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
   background:linear-gradient(var(--glass-light-angle),transparent 30%,#ffffff65 47%,transparent 57%);
   background-size:200% 200%;background-position:0% 50%;opacity:.5;mix-blend-mode:screen;
 }
-:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button)::after{
+:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button)::after{
   content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
   background:conic-gradient(from var(--glass-rim-angle),#ffffffb0,transparent 12% 38%,#ffffffb0 50%,transparent 62% 88%,#ffffffb0);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
@@ -98,23 +98,23 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
   border-color:#ffb1b56b;color:#fff;text-shadow:0 1px 3px #670007;
   box-shadow:inset 0 1px 1px #ffffff85,inset 0 -1px 2px #ffb7bc35,0 3px 10px #0005;
 }
-:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button):focus-visible{outline:2px solid #fff;outline-offset:3px}
+:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button):focus-visible{outline:2px solid #fff;outline-offset:3px}
 @media(hover:hover){
-  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button):hover{transform:scale(.975);border-color:#ffffff75;color:#fff;-webkit-backdrop-filter:blur(.15px) saturate(1.35);backdrop-filter:blur(.15px) saturate(1.35);box-shadow:inset 0 1px 2px #0002,inset 0 -2px 2px #ffffff85,inset 0 0 2px 2px #ffffff65,0 2px 3px #0006}
-  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button):hover::before{background-position:25% 50%;opacity:.85}
-  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button):hover::after{--glass-rim-angle:-125deg}
+  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button):hover{transform:scale(.975);border-color:#ffffff75;color:#fff;-webkit-backdrop-filter:blur(.15px) saturate(1.35);backdrop-filter:blur(.15px) saturate(1.35);box-shadow:inset 0 1px 2px #0002,inset 0 -2px 2px #ffffff85,inset 0 0 2px 2px #ffffff65,0 2px 3px #0006}
+  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button):hover::before{background-position:25% 50%;opacity:.85}
+  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button):hover::after{--glass-rim-angle:-125deg}
 }
-:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button):active{transform:perspective(500px) rotateX(25deg) scale(.975);box-shadow:inset 0 3px 2px #0003,inset 0 -2px 2px #fff8,0 3px 0 #ffffff75,0 5px 5px #0006}
-:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button):active::before{background-position:50% 15%;--glass-light-angle:-15deg}
-:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button):active::after{--glass-rim-angle:-75deg}
+:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button):active{transform:perspective(500px) rotateX(25deg) scale(.975);box-shadow:inset 0 3px 2px #0003,inset 0 -2px 2px #fff8,0 3px 0 #ffffff75,0 5px 5px #0006}
+:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button):active::before{background-position:50% 15%;--glass-light-angle:-15deg}
+:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button):active::after{--glass-rim-angle:-75deg}
 /* Header hover motion is explicitly enabled for the requested glass interaction,
    including browsers that advertise reduced motion by default. */
 @media(hover:hover){
-  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button){transition:transform .4s cubic-bezier(.25,1,.5,1),border-color .4s ease,color .4s ease,box-shadow .4s ease,backdrop-filter .4s ease,-webkit-backdrop-filter .4s ease,opacity .18s ease}
-  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button)::before{transition:background-position .5s cubic-bezier(.25,1,.5,1),--glass-light-angle .5s ease,opacity .4s ease}
-  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button)::after{transition:--glass-rim-angle .5s ease}
+  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button){transition:transform .4s cubic-bezier(.25,1,.5,1),border-color .4s ease,color .4s ease,box-shadow .4s ease,backdrop-filter .4s ease,-webkit-backdrop-filter .4s ease,opacity .18s ease}
+  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button)::before{transition:background-position .5s cubic-bezier(.25,1,.5,1),--glass-light-angle .5s ease,opacity .4s ease}
+  :is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button)::after{transition:--glass-rim-angle .5s ease}
 }
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,#refresh-sources,:where(#account-dialog) button){background-color:#242429e6}}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){:is(.header .nav,.header .chip,:where(#movie-content) .actions>button,.source-sorting>button,.source-card .primary,:where(#refresh-sources),:where(#account-dialog) button){background-color:#242429e6}}
 @media(max-width:480px){.header .nav{padding:8px}.header nav{gap:5px}}
 #account-dialog{width:min(500px,calc(100% - 28px))}
 /* Film actions and source controls share the header's glass interaction. */
