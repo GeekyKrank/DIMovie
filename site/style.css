@@ -138,4 +138,4 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 .account-form{padding:32px;position:relative}.account-form h2{font-size:22px;margin:0 28px 18px 0}.account-form p{font-size:12px;color:#b8b8c0;line-height:1.8}.account-form>label:not(.account-import){display:block;font-size:13px;margin:22px 0 8px}.account-form input[type=text],#account-nick{width:100%;padding:13px 14px;border:1px solid #444;border-radius:8px;background:#181818;color:white}.account-close{position:absolute;top:14px;right:16px;border:0;background:none;color:#ccc;font-size:28px}.account-form .account-public{color:#bbb}.account-import{display:flex;gap:10px;align-items:flex-start;font-size:11px;color:#bbb;line-height:1.7}.account-import input{accent-color:var(--red);margin-top:4px}.account-form #account-status{color:#ff7378}
 
 /* Profile dialog and source retry use the same glass treatment. */
-#account-close{width:36px;height:36px;padding:0;display:grid;place-items:center;font-size:24px;line-height:1}
+#account-close{position:absolute;top:14px;right:16px;left:auto;width:36px;height:36px;padding:0;display:grid;place-items:center;font-size:24px;line-height:1}
