@@ -1,11 +1,11 @@
-import { playHls, stopHls } from './hls-player.js?v=resume-2';
-import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback } from './transport.js?v=resume-2';
+import { playHls, stopHls } from './hls-player.js?v=sync-20261025';
+import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback, ensureCompatibleAudio, selectedServerAudio } from './transport.js?v=sync-20261025';
 import { searchSources, sortSources, matchMovieSources } from './sources.js?v=movie-match-2';
-import { setControlTitle } from './controls.js?v=resume-2';
+import { setControlTitle } from './controls.js?v=sync-20261025';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let directMode = false;
-let token = '', active = false, pollTimer, operation;
+let token = '', active = false, pollTimer, operation, playbackRevision = 0;
 let currentMovie = {}, currentImdb = '', sourceController, sourceLoading = false, sessionPromise;
 const video = $('embedded-video');
 async function call(path, data = {}, signal) {
@@ -42,6 +42,7 @@ async function statistics() {
   if (active) pollTimer = setTimeout(statistics, 5000);
 }
 export async function stopPlayer() {
+  playbackRevision++;
   directMode = false; stopHls();
   sourceController?.abort();
   operation?.abort(); clearTimeout(pollTimer);
@@ -154,9 +155,11 @@ async function loadTorrent(link, preferred = null, autoStart = false) {
   finally { $('load-torrent').disabled = false; sourceLoading = false; }
 }
 async function startVideo() {
+  const ticket = ++playbackRevision;
   $('start-video').disabled = true; message('Накапливаем буфер…');
   try {
-    const result = await call('/play', { index: Number($('video-file').value) });
+    const result = await call('/play', { index: Number($('video-file').value) }, operation?.signal);
+    if (ticket !== playbackRevision) return;
     configureTransport(BASE + result.path, signal => call('/audio-info', {stream:result.path.split('/').pop()}, signal));
     video.dispatchEvent(new Event('resume-request'));
     video.src = BASE + result.path; video.load();
@@ -164,8 +167,13 @@ async function startVideo() {
     $('video-shell').scrollIntoView({ block: 'center' });
     const requestedSource = video.src;
     video.play().catch(error => { if (video.src === requestedSource && error.name === 'NotAllowedError') message('Нажми ▶ на видео, чтобы начать просмотр.'); });
+    // Some browsers play the picture but silently omit unsupported AC3/DTS.
+    // Probe once in parallel; menu requests share the same probe.
+    ensureCompatibleAudio().then(changed => {
+      if (ticket === playbackRevision && changed) message('Готовим совместимую озвучку AAC…');
+    }).catch(() => {});
   } catch (error) { message(error.message); }
-  finally { $('start-video').disabled = false; }
+  finally { if (ticket === playbackRevision) $('start-video').disabled = false; }
 }
 $('start-video').addEventListener('click', startVideo);
 video.addEventListener('playing', () => { $('center-play').hidden = true; message('Воспроизведение'); });
@@ -175,6 +183,7 @@ async function handlePlaybackFailure(code = video.error?.code) {
   const failedSource = video.getAttribute('src');
   if (!failedSource) return;
   if (directMode) {message('Не удалось открыть поток AniLiberty. Попробуй другое качество или повтори запуск.');return;}
+  if (selectedServerAudio() !== null) { message('Не удалось загрузить выбранную озвучку. Повтори выбор дорожки или попробуй другой источник.'); return; }
   message('Проверяем совместимость файла и готовим MP4 со звуком AAC…');
   try {
     const recovered = await recoverCompatiblePlayback(code);

@@ -1,4 +1,4 @@
-import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback, selectedServerAudio, originalAudio } from './transport.js?v=resume-2';
+import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback, selectedServerAudio, originalAudio } from './transport.js?v=sync-20261025';
 import { audioLabel, selectAudioTrack } from './audio.js?v=audio-menu-1';
 const $ = id => document.getElementById(id);
 const video = $('embedded-video'), shell = $('video-shell');
@@ -73,7 +73,12 @@ async function fullscreen() {
   showControls();
 }
 $('toggle-play').addEventListener('click', togglePlay);
-let audioMode = 'native', audioLoading = false;
+let audioMode = 'native', audioLoading = false, audioRevision = 0;
+video.addEventListener('transportchange', () => {
+  audioRevision++; audioMode = 'native'; audioLoading = false;
+  $('audio-track').replaceChildren(); $('audio-panel').hidden = true;
+  $('audio-menu').setAttribute('aria-expanded', 'false');
+});
 function refreshAudio() {
   if (audioMode === 'server') return;
   const select = $('audio-track');
@@ -97,18 +102,21 @@ $('audio-menu').addEventListener('click', async () => {
   $('audio-panel').hidden = !opening; $('audio-menu').setAttribute('aria-expanded', String(opening));
   if (opening) {
     refreshAudio();
-    if (video.getAttribute('src') && !video.audioTracks?.length && !audioLoading) {
+    if (video.getAttribute('src') && (selectedServerAudio() !== null || !video.audioTracks?.length) && !audioLoading) {
+      const requestRevision = audioRevision;
       audioLoading = true; $('audio-message').textContent = 'Сервер определяет дорожки… Это может занять до 40 секунд.';
       try {
-        const info = await serverAudioTracks(); audioMode = 'server';
+        const info = await serverAudioTracks();
+        if (requestRevision !== audioRevision) return;
+        audioMode = 'server';
         $('audio-track').replaceChildren();
         const original = document.createElement('option'); original.value = ''; original.textContent = 'Исходный звук'; $('audio-track').append(original);
         for (const track of info.tracks) { const option = document.createElement('option'); option.value = String(track.index); option.textContent = audioLabel(track, track.index) + (track.codec ? ' · ' + track.codec.toUpperCase() : ''); $('audio-track').append(option); }
         $('audio-track').value = selectedServerAudio() === null ? '' : String(selectedServerAudio());
         $('audio-track').hidden = !info.tracks.length; $('audio-track').disabled = !info.tracks.length;
         $('audio-message').textContent = info.tracks.length ? 'Выбери озвучку. Сервер подготовит звук AAC, сохранив видео и позицию просмотра. При перемотке возможна короткая буферизация.' : 'В этом файле не найдены звуковые дорожки.';
-      } catch (error) { $('audio-message').textContent = error.message; }
-      finally { audioLoading = false; }
+      } catch (error) { if (requestRevision === audioRevision) $('audio-message').textContent = error.message; }
+      finally { if (requestRevision === audioRevision) audioLoading = false; }
     }
   } showControls();
 });
@@ -118,7 +126,7 @@ $('audio-track').addEventListener('change', event => {
     if (audioMode === 'server') { if (event.target.value === '') originalAudio(); else selectServerAudio(Number(event.target.value)); }
     else if (!selectAudioTrack(video.audioTracks, Number(event.target.value))) throw new Error();
     $('audio-message').textContent = 'Выбрано: ' + event.target.selectedOptions[0].textContent;
-  } catch { $('audio-message').textContent = 'Браузер не смог переключить эту дорожку. Попробуй другой источник.'; }
+  } catch (error) { $('audio-message').textContent = error.message || 'Браузер не смог переключить эту дорожку. Попробуй другой источник.'; }
   showControls();
 });
 video.addEventListener('emptied', () => { if (!video.getAttribute('src')) { audioMode = 'native'; $('audio-panel').hidden = true; $('audio-menu').setAttribute('aria-expanded', 'false'); } });

@@ -35,6 +35,20 @@ REGISTRY = _lifecycle.Registry(SESSIONS, STREAMS, lambda data: upstream(data), m
 LOCK = REGISTRY.lock
 
 
+def audio_command(url, index, start, source_timeline=False, video_codec=None):
+    # empty_moov cannot express the initial per-track edit lists. In particular,
+    # AAC encoder priming and video B-frame preroll must share one timeline.
+    timestamps = ['-copyts', '-start_at_zero', '-avoid_negative_ts', 'disabled'] if source_timeline else ['-avoid_negative_ts', 'make_zero']
+    return ['/usr/bin/ffmpeg', '-nostdin', '-v', 'error', '-threads', '1',
+            '-rw_timeout', '15000000', '-protocol_whitelist', 'http,tcp',
+            '-format_whitelist', 'mov,matroska,webm,avi,mpegts,mp3,ogg',
+            '-ss', str(start), '-noaccurate_seek', '-i', url,
+            '-map', '0:v:0', '-map', '0:' + str(index), '-sn', '-dn',
+            '-c:v', 'copy', *(['-tag:v', 'hvc1'] if video_codec == 'hevc' else []), '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-threads', '1',
+            *timestamps, '-movflags', 'frag_keyframe+delay_moov+default_base_moof',
+            '-frag_duration', '1000000', '-f', 'mp4', 'pipe:1']
+
+
 def stop_process(process):
     if process is None:
         return
@@ -116,9 +130,9 @@ def audio_info(stream):
     if not PROBE_GATE.acquire(blocking=False):
         raise ValueError('Проверка дорожек уже выполняется')
     try:
-        result = subprocess.run(['/usr/bin/ffprobe', '-v', 'error', '-rw_timeout', '15000000', '-protocol_whitelist', 'http,tcp', '-format_whitelist', 'mov,matroska,webm,avi,mpegts,mp3,ogg', '-probesize', '8000000', '-analyzeduration', '8000000', '-show_entries', 'format=duration:stream=index,codec_type,codec_name:stream_tags=language,title', '-of', 'json', media_url(stream)], capture_output=True, timeout=40, check=True)
+        result = subprocess.run(['/usr/bin/ffprobe', '-v', 'error', '-rw_timeout', '15000000', '-protocol_whitelist', 'http,tcp', '-format_whitelist', 'mov,matroska,webm,avi,mpegts,mp3,ogg', '-probesize', '8000000', '-analyzeduration', '8000000', '-show_entries', 'format=duration:stream=index,codec_type,codec_name:stream_tags=language,title:stream_disposition=default', '-of', 'json', media_url(stream)], capture_output=True, timeout=40, check=True)
         info = json.loads(result.stdout)
-        return {'duration': float(info.get('format', {}).get('duration', 0)), 'video_codecs': [s.get('codec_name', '') for s in info.get('streams', []) if s.get('codec_type') == 'video'], 'tracks': [{'index': s['index'], 'language': s.get('tags', {}).get('language', ''), 'label': s.get('tags', {}).get('title', ''), 'codec': s.get('codec_name', '')} for s in info.get('streams', []) if s.get('codec_type') == 'audio']}
+        return {'audio_timeline': 'source', 'duration': float(info.get('format', {}).get('duration', 0)), 'video_codecs': [s.get('codec_name', '') for s in info.get('streams', []) if s.get('codec_type') == 'video'], 'tracks': [{'index': s['index'], 'language': s.get('tags', {}).get('language', ''), 'label': s.get('tags', {}).get('title', ''), 'codec': s.get('codec_name', ''), 'default': bool(s.get('disposition', {}).get('default'))} for s in info.get('streams', []) if s.get('codec_type') == 'audio']}
     finally:
         PROBE_GATE.release()
 
@@ -374,7 +388,7 @@ class Handler(BaseHTTPRequestHandler):
             MEDIA_GATE.release()
 
     def serve_audio(self, stream, parts):
-        if len(parts) != 3 or parts[0] != 'audio' or not re.fullmatch(r'\d{1,4}', parts[1]) or not re.fullmatch(r'\d{1,6}(?:\.\d{1,3})?', parts[2]):
+        if len(parts) != 3 or parts[0] not in ('audio', 'audio-v2') or not re.fullmatch(r'\d{1,4}', parts[1]) or not re.fullmatch(r'\d{1,6}(?:\.\d{1,3})?', parts[2]):
             return self.reply(400, {'error': 'Некорректная дорожка'})
         info = stream.get('audio')
         index, start = int(parts[1]), float(parts[2])
@@ -394,7 +408,7 @@ class Handler(BaseHTTPRequestHandler):
                 stop_process(previous)
                 if TRANSCODERS:
                     return self.reply(503, {'error': 'Обработка звука занята'})
-                process = subprocess.Popen(['/usr/bin/ffmpeg', '-nostdin', '-v', 'error', '-threads', '1', '-rw_timeout', '15000000', '-protocol_whitelist', 'http,tcp', '-format_whitelist', 'mov,matroska,webm,avi,mpegts,mp3,ogg', '-ss', str(start), '-noaccurate_seek', '-i', media_url(stream), '-map', '0:v:0', '-map', '0:' + str(index), '-sn', '-dn', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-threads', '1', '-avoid_negative_ts', 'make_zero', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', '-frag_duration', '1000000', '-f', 'mp4', 'pipe:1'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                process = subprocess.Popen(audio_command(media_url(stream), index, start, parts[0] == 'audio-v2', next(iter(info.get('video_codecs', [])), None)), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 TRANSCODERS[stream['owner']] = process
                 process._dimovie_stream = stream
             self.connection.settimeout(30)

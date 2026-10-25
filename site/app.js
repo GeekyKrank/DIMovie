@@ -1,9 +1,9 @@
 import { normalizeNick, profileLibrary } from './profile.js?v=profiles-1';
 import { animeCatalog, animeRelease, animeImage, animeCard, playableEpisodes, findAnimeMovie } from './anime.js?v=anime-1';
 import { api, posterUrl } from './api.js';
-import { openPlayer, stopPlayer, setupAnimePlayer, startAnimeStream } from './player.js?v=resume-2';
+import { openPlayer, stopPlayer, setupAnimePlayer, startAnimeStream } from './player.js?v=sync-20261025';
 import {historyItems, historyFor, saveHistory} from './history.js?v=1';
-import {playbackTime, playbackDuration} from './transport.js?v=resume-2';
+import {playbackTime, playbackDuration} from './transport.js?v=sync-20261025';
 const $ = id => document.getElementById(id);
 const state = { category: 'movie/popular', query: '', page: 1, pages: 1, library: false, anime: false };
 let controller, detailController, searchTimer, selectedMovie = null, catalogueScroll = 0;
