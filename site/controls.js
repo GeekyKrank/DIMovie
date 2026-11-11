@@ -1,4 +1,4 @@
-import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback, selectedServerAudio, originalAudio } from './transport.js?v=sync-20261025';
+import { playbackTime, playbackDuration, serverAudioTracks, selectServerAudio, seekPlayback, selectedServerAudio, originalAudio, audioDelay, setAudioDelay, AUDIO_DELAY_LIMIT } from './transport.js?v=sync-20261112';
 import { audioLabel, selectAudioTrack } from './audio.js?v=audio-menu-1';
 const $ = id => document.getElementById(id);
 const video = $('embedded-video'), shell = $('video-shell');
@@ -74,6 +74,31 @@ async function fullscreen() {
 }
 $('toggle-play').addEventListener('click', togglePlay);
 let audioMode = 'native', audioLoading = false, audioRevision = 0;
+let pendingDelay = null, delayTimer;
+export function delayLabel(ms) { return ms === 0 ? 'Звук без сдвига' : ms > 0 ? `Звук позже на ${ms} мс` : `Звук раньше на ${-ms} мс`; }
+function refreshSync() {
+  const value = pendingDelay ?? audioDelay();
+  $('audio-sync').hidden = !(audioMode === 'server' && selectedServerAudio() !== null);
+  $('audio-sync-value').textContent = delayLabel(value);
+  $('audio-sync-reset').disabled = value === 0;
+}
+// Each change restarts server preparation, so rapid clicks are combined into one request.
+function queueDelay(ms) {
+  pendingDelay = Math.max(-AUDIO_DELAY_LIMIT, Math.min(AUDIO_DELAY_LIMIT, ms)); refreshSync();
+  clearTimeout(delayTimer);
+  delayTimer = setTimeout(() => {
+    const value = pendingDelay; pendingDelay = null;
+    try { if (setAudioDelay(value)) $('audio-message').textContent = 'Сервер готовит звук со сдвигом…'; }
+    catch (error) { $('audio-message').textContent = error.message; }
+    refreshSync();
+  }, 700);
+}
+$('audio-sync').addEventListener('click', event => {
+  const button = event.target.closest('button'); if (!button) return;
+  queueDelay(button.id === 'audio-sync-reset' ? 0 : (pendingDelay ?? audioDelay()) + Number(button.dataset.shift));
+  showControls();
+});
+video.addEventListener('transportchange', () => { clearTimeout(delayTimer); pendingDelay = null; refreshSync(); });
 video.addEventListener('transportchange', () => {
   audioRevision++; audioMode = 'native'; audioLoading = false;
   $('audio-track').replaceChildren(); $('audio-panel').hidden = true;
@@ -114,6 +139,7 @@ $('audio-menu').addEventListener('click', async () => {
         for (const track of info.tracks) { const option = document.createElement('option'); option.value = String(track.index); option.textContent = audioLabel(track, track.index) + (track.codec ? ' · ' + track.codec.toUpperCase() : ''); $('audio-track').append(option); }
         $('audio-track').value = selectedServerAudio() === null ? '' : String(selectedServerAudio());
         $('audio-track').hidden = !info.tracks.length; $('audio-track').disabled = !info.tracks.length;
+        refreshSync();
         $('audio-message').textContent = info.tracks.length ? 'Выбери озвучку. Сервер подготовит звук AAC, сохранив видео и позицию просмотра. При перемотке возможна короткая буферизация.' : 'В этом файле не найдены звуковые дорожки.';
       } catch (error) { if (requestRevision === audioRevision) $('audio-message').textContent = error.message; }
       finally { if (requestRevision === audioRevision) audioLoading = false; }
@@ -125,6 +151,7 @@ $('audio-track').addEventListener('change', event => {
   try {
     if (audioMode === 'server') { if (event.target.value === '') originalAudio(); else selectServerAudio(Number(event.target.value)); }
     else if (!selectAudioTrack(video.audioTracks, Number(event.target.value))) throw new Error();
+    clearTimeout(delayTimer); pendingDelay = null; refreshSync();
     $('audio-message').textContent = 'Выбрано: ' + event.target.selectedOptions[0].textContent;
   } catch (error) { $('audio-message').textContent = error.message || 'Браузер не смог переключить эту дорожку. Попробуй другой источник.'; }
   showControls();

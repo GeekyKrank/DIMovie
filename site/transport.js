@@ -1,7 +1,10 @@
-import {startPreparedStream, stopPreparedStream} from './prepared-stream.js?v=sync-20261025';
+import {startPreparedStream, stopPreparedStream} from './prepared-stream.js?v=sync-20261112';
 const video = document.getElementById('embedded-video');
 let source = '', loader, info, offset = 0, selected = null, pending, infoPromise, compatibilityAttempted = false;
 let pendingPosition = null, metadataListener, playingIntent = false, revision = 0, streamRetries = 0;
+// Manual shift per server-prepared track (ms, positive = sound later): dubs in a release are often muxed out of step.
+export const AUDIO_DELAY_LIMIT = 3000;
+let delays = new Map();
 function wantsPlayback() { return pendingPosition !== null ? playingIntent : !video.paused; }
 function reportPlayError(error, ticket) {
   if (ticket === revision && error.name !== 'AbortError') document.getElementById('player-status').textContent = 'Нажми ▶ для продолжения просмотра.';
@@ -19,7 +22,7 @@ export function configureTransport(url = '', loadInfo) {
   infoPromise = null;
   if (metadataListener) video.removeEventListener('loadedmetadata', metadataListener);
   metadataListener = null; pendingPosition = null; playingIntent = false;
-  source = url; loader = loadInfo; info = null; offset = 0; selected = null; compatibilityAttempted = false;
+  source = url; loader = loadInfo; info = null; offset = 0; selected = null; compatibilityAttempted = false; delays = new Map();
   video.dispatchEvent?.(new Event('transportchange'));
 }
 export function playbackDuration() { return selected !== null ? info?.duration || 0 : video.duration; }
@@ -68,7 +71,8 @@ function reloadAt(time, resume) {
     if (absolute) video.currentTime = target;
     if (playingIntent) video.play().catch(error => reportPlayError(error, ticket));
   });
-  const url = `${source}/${absolute ? 'audio-v2' : 'audio'}/${selected}/${target.toFixed(3)}`;
+  const delay = audioDelay();
+  const url = `${source}/${absolute ? 'audio-v2' : 'audio'}/${selected}/${target.toFixed(3)}${delay ? '/' + delay : ''}`;
   const fallback = () => { video.src = url; video.load(); };
   const streaming = absolute && startPreparedStream(video, url, info.duration, {
     fallback,
@@ -78,6 +82,16 @@ function reloadAt(time, resume) {
   if (!streaming) fallback();
   // Metadata restores the exact movie time before playback starts. Starting
   // earlier would briefly play the keyframe preceding the requested position.
+}
+export function audioDelay() { return selected === null ? 0 : delays.get(selected) || 0; }
+export function setAudioDelay(ms) {
+  if (selected === null) throw new Error('Сначала выбери озвучку в списке: сдвиг работает для дорожки, подготовленной сервером.');
+  ms = Math.max(-AUDIO_DELAY_LIMIT, Math.min(AUDIO_DELAY_LIMIT, Math.round(Number(ms) || 0)));
+  if (ms === audioDelay()) return false;
+  if (ms) delays.set(selected, ms); else delays.delete(selected);
+  streamRetries = 0;
+  reloadAt(playbackTime(), wantsPlayback());
+  return true;
 }
 export function selectServerAudio(index) {
   const incompatible = info?.video_codecs?.find(codec => ['mpeg4','msmpeg4v3','mpeg2video','mpeg1video','wmv3','vc1','h263'].includes(codec));

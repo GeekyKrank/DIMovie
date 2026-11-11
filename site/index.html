@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://image.tmdb.org">
   <link rel="stylesheet" href="assets/fonts/unbounded.css">
   <link rel="stylesheet" href="style.css?v=library-header-1">
-  <script type="module" src="app.js?v=sync-20261025"></script>
+  <script type="module" src="app.js?v=sync-20261112"></script>
 </head>
 <body>
   <header class="header">
@@ -49,7 +49,7 @@
               <span id="video-time" class="video-time">0:00 <span>/ 0:00</span></span>
               <div class="control-spacer"></div>
               <div class="volume-controls"><button id="mute-video" class="icon-button" aria-label="Выключить звук" title="Звук (M)"></button><input id="video-volume" aria-label="Громкость видео" type="range" min="0" max="1" step="0.01" value="1"></div>
-              <div class="audio-picker"><button id="audio-menu" class="icon-button audio-menu" aria-label="Выбрать озвучку" aria-expanded="false" aria-controls="audio-panel" title="Озвучка">♫</button><section id="audio-panel" class="audio-panel" aria-label="Звуковые дорожки" hidden><div class="audio-head"><strong>Озвучка</strong><button id="audio-close" aria-label="Закрыть выбор озвучки">×</button></div><label for="audio-track">Звуковая дорожка</label><select id="audio-track" hidden></select><p id="audio-message" role="status"></p></section></div>
+              <div class="audio-picker"><button id="audio-menu" class="icon-button audio-menu" aria-label="Выбрать озвучку" aria-expanded="false" aria-controls="audio-panel" title="Озвучка">♫</button><section id="audio-panel" class="audio-panel" aria-label="Звуковые дорожки" hidden><div class="audio-head"><strong>Озвучка</strong><button id="audio-close" aria-label="Закрыть выбор озвучки">×</button></div><label for="audio-track">Звуковая дорожка</label><select id="audio-track" hidden></select><p id="audio-message" role="status"></p><div id="audio-sync" class="audio-sync" hidden><div id="audio-sync-value" class="audio-sync-value" role="status">Звук без сдвига</div><div class="audio-sync-buttons"><button type="button" data-shift="-100">раньше 100 мс</button><button type="button" data-shift="100">позже 100 мс</button><button type="button" data-shift="-50">раньше 50 мс</button><button type="button" data-shift="50">позже 50 мс</button></div><button type="button" id="audio-sync-reset">Сбросить сдвиг</button><p>Звук опаздывает — жми «раньше», спешит — «позже». Сдвиг применяется к выбранной озвучке.</p></div></section></div>
               <button id="fullscreen-video" class="icon-button" aria-label="На весь экран" title="Полный экран (F)"></button>
             </div>
           </div>

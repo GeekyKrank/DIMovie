@@ -1,7 +1,7 @@
-import { playHls, stopHls } from './hls-player.js?v=sync-20261025';
-import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback, ensureCompatibleAudio, selectedServerAudio } from './transport.js?v=sync-20261025';
+import { playHls, stopHls } from './hls-player.js?v=sync-20261112';
+import { configureTransport, seekPlayback, playbackTime, playbackDuration, recoverCompatiblePlayback, ensureCompatibleAudio, selectedServerAudio } from './transport.js?v=sync-20261112';
 import { searchSources, sortSources, matchMovieSources } from './sources.js?v=movie-match-2';
-import { setControlTitle } from './controls.js?v=sync-20261025';
+import { setControlTitle } from './controls.js?v=sync-20261112';
 const BASE = 'https://158-180-61-121.sslip.io/dimovie-player';
 const $ = id => document.getElementById(id);
 let directMode = false;

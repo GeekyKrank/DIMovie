@@ -151,3 +151,4 @@ body:has(#catalog-page:not([hidden])) main{padding-top:16px}
 body:has(#library-tab[aria-pressed="true"]) .header{position:relative;inset:auto}
 body:has(#library-tab[aria-pressed="true"]) main{padding-top:28px}
 @media(max-width:900px){body:has(#library-tab[aria-pressed="true"]) main{padding-top:24px}}
+.audio-sync{margin-top:12px;border-top:1px solid #333;padding-top:12px}.audio-sync-value{font-size:13px;margin-bottom:8px}.audio-sync-buttons{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:6px}.audio-sync button{padding:8px;background:#252525;border:1px solid #555;border-radius:6px;color:white;font:inherit;font-size:12px;cursor:pointer}.audio-sync button:disabled{opacity:.45;cursor:default}#audio-sync-reset{width:100%}

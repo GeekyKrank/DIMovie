@@ -47,3 +47,28 @@ test('Silent unsupported original audio is prepared automatically and concurrent
     assert.equal(await t.ensureCompatibleAudio(),false);
   }finally{globalThis.document=old;}
 });
+
+test('Manual dub shift is per track, sent to the server and cleared for a new film', async () => {
+  const old=globalThis.document;
+  const video=Object.assign(new EventTarget(),{currentTime:40,duration:300,paused:false,src:'',buffered:{length:0},
+    load(){this.currentTime=0;this.paused=true;},play(){this.paused=false;return Promise.resolve();}});
+  globalThis.document={getElementById:()=>video};
+  try {
+    const t=await import('./site/transport.js?manual-delay-regression');
+    t.configureTransport('https://example.test/watch/a',async()=>({audio_timeline:'source',duration:300,tracks:[{index:1},{index:2}]}));
+    await t.serverAudioTracks();
+    assert.throws(()=>t.setAudioDelay(100),/выбери озвучку/);
+    t.selectServerAudio(2);video.dispatchEvent(new Event('loadedmetadata'));
+    assert.equal(t.setAudioDelay(-250),true);
+    assert.match(video.src,/audio-v2\/2\/40\.000\/-250$/);
+    video.dispatchEvent(new Event('loadedmetadata'));
+    assert.equal(t.playbackTime(),40);
+    assert.equal(t.setAudioDelay(-250),false);
+    assert.equal(t.setAudioDelay(99999),true);assert.equal(t.audioDelay(),3000);
+    t.selectServerAudio(1);assert.equal(t.audioDelay(),0);assert.match(video.src,/audio-v2\/1\/40\.000$/);
+    video.dispatchEvent(new Event('loadedmetadata'));
+    t.selectServerAudio(2);assert.equal(t.audioDelay(),3000);assert.match(video.src,/\/3000$/);
+    t.configureTransport('https://example.test/watch/b',async()=>({audio_timeline:'source',duration:100,tracks:[{index:2}]}));
+    await t.serverAudioTracks();t.selectServerAudio(2);assert.equal(t.audioDelay(),0);
+  }finally{globalThis.document=old;}
+});

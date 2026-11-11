@@ -35,7 +35,7 @@ REGISTRY = _lifecycle.Registry(SESSIONS, STREAMS, lambda data: upstream(data), m
 LOCK = REGISTRY.lock
 
 
-def audio_command(url, index, start, source_timeline=False, video_codec=None):
+def audio_command(url, index, start, source_timeline=False, video_codec=None, delay_ms=0):
     # empty_moov cannot express the initial per-track edit lists. In particular,
     # AAC encoder priming and video B-frame preroll must share one timeline.
     timestamps = ['-copyts', '-start_at_zero', '-avoid_negative_ts', 'disabled'] if source_timeline else ['-avoid_negative_ts', 'make_zero']
@@ -44,7 +44,7 @@ def audio_command(url, index, start, source_timeline=False, video_codec=None):
             '-format_whitelist', 'mov,matroska,webm,avi,mpegts,mp3,ogg',
             '-ss', str(start), '-noaccurate_seek', '-i', url,
             '-map', '0:v:0', '-map', '0:' + str(index), '-sn', '-dn',
-            '-c:v', 'copy', *(['-tag:v', 'hvc1'] if video_codec == 'hevc' else []), '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-threads', '1',
+            '-c:v', 'copy', *(['-tag:v', 'hvc1'] if video_codec == 'hevc' else []), *(['-af', 'asetpts=PTS+%.3f/TB' % (delay_ms / 1000)] if delay_ms else []), '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-threads', '1',
             *timestamps, '-movflags', 'frag_keyframe+delay_moov+default_base_moof',
             '-frag_duration', '1000000', '-f', 'mp4', 'pipe:1']
 
@@ -388,10 +388,14 @@ class Handler(BaseHTTPRequestHandler):
             MEDIA_GATE.release()
 
     def serve_audio(self, stream, parts):
-        if len(parts) != 3 or parts[0] not in ('audio', 'audio-v2') or not re.fullmatch(r'\d{1,4}', parts[1]) or not re.fullmatch(r'\d{1,6}(?:\.\d{1,3})?', parts[2]):
+        # Optional 4th part: manual dub shift in ms (positive = sound later), for releases muxed out of sync.
+        if len(parts) not in (3, 4) or parts[0] not in ('audio', 'audio-v2') or not re.fullmatch(r'\d{1,4}', parts[1]) or not re.fullmatch(r'\d{1,6}(?:\.\d{1,3})?', parts[2]) or (len(parts) == 4 and not re.fullmatch(r'-?\d{1,4}', parts[3])):
             return self.reply(400, {'error': 'Некорректная дорожка'})
         info = stream.get('audio')
         index, start = int(parts[1]), float(parts[2])
+        delay_ms = int(parts[3]) if len(parts) == 4 else 0
+        if abs(delay_ms) > 3000:
+            return self.reply(400, {'error': 'Сдвиг звука — не больше 3 секунд'})
         if not info or index not in [t['index'] for t in info['tracks']] or start > max(info['duration'], 0):
             return self.reply(400, {'error': 'Дорожка не найдена'})
         if any(codec in {'mpeg4', 'msmpeg4v3', 'mpeg2video', 'mpeg1video', 'wmv3', 'vc1', 'h263'} for codec in info.get('video_codecs', [])):
@@ -408,7 +412,7 @@ class Handler(BaseHTTPRequestHandler):
                 stop_process(previous)
                 if TRANSCODERS:
                     return self.reply(503, {'error': 'Обработка звука занята'})
-                process = subprocess.Popen(audio_command(media_url(stream), index, start, parts[0] == 'audio-v2', next(iter(info.get('video_codecs', [])), None)), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                process = subprocess.Popen(audio_command(media_url(stream), index, start, parts[0] == 'audio-v2', next(iter(info.get('video_codecs', [])), None), delay_ms), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 TRANSCODERS[stream['owner']] = process
                 process._dimovie_stream = stream
             self.connection.settimeout(30)
